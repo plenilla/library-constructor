@@ -1,0 +1,142 @@
+body{
+  font-family: Arial, Helvetica, sans-serif;
+  padding: 20px;
+}
+.modal {
+display: none; /* Модальное окно скрыто по умолчанию */
+position: fixed;
+z-index: 1;
+left: 0;
+top: 0;
+width: 100vw;
+height: 100vh;
+background-color: rgba(0, 0, 0, 0.4); /* Полупрозрачный фон */
+align-items: center;
+justify-content: center;
+}
+
+
+/* само модальное окно с контентом */
+.modal-content {
+  background-color: #fff;
+  position: relative; /* Родитель для абсолютного позиционирования */
+  margin: 100px auto; 
+  padding: 40px;
+  font-size: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 50%;
+  gap: 10%;
+}
+
+.modal-content > span {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modal-content-input {
+gap: 10px; 
+width: 100%; /* Контейнер занимает всю ширину */
+max-width: 400px; /* Ограничим максимальную ширину */
+display: flex;
+flex-direction: column;
+}
+ .modal-content-input button{
+  width: 100%; /* Растянет кнопку по ширине контейнера */
+  padding: 15px; /* Увеличит высоту кнопки за счет отступов */
+  font-size: 18px; /* Сделает текст крупнее */
+  border: none;
+  background-color: #007bff; /* Цвет кнопки */
+  color: white;
+  cursor: pointer;
+  border-radius: 5px; /* Скругление углов */
+  transition: background 0.3s;
+ }
+ .modal-content-input button:hover {
+  background-color: #0056b3; /* Темнее при наведении */
+}
+.modal-content-input input {
+width: 100%; /* Растягивает input по ширине */
+padding: 15px; /* Увеличивает высоту */
+font-size: 18px; /* Делаем текст крупнее */
+border: 2px solid #ccc; /* Добавляем тонкую рамку */
+border-radius: 5px; /* Скругляем углы */
+outline: none; /* Убираем стандартную обводку */
+transition: border-color 0.3s, background 0.3s;
+}
+
+/* Изменение стиля при фокусе */
+.modal-content-input input:focus {
+border-color: #007bff; /* Синий цвет рамки при фокусе */
+background-color: #f8f9fa; 
+}
+
+
+.modal-content-input input,
+.modal-content-input button {
+width: 100%; /* Делаем их одинаковой ширины */
+}
+
+
+span {
+  cursor: pointer;
+}
+
+/* Стили для таблицы */
+table {
+width: 100%;
+border-collapse: collapse; /* Убирает промежутки между ячейками */
+margin: 20px 0;
+font-size: 16px;
+}
+
+/* Стили для заголовков таблицы */
+th {
+background-color: #007bff;
+color: white;
+padding: 12px;
+text-align: left;
+}
+
+/* Стили для ячеек таблицы */
+td {
+padding: 12px;
+border: 1px solid #ccc;
+text-align: left;
+}
+
+/* Стиль для строк при наведении */
+tr:hover {
+background-color: #f1f1f1;
+}
+
+/* Стиль для кнопок в таблице */
+button {
+padding: 10px 15px;
+font-size: 14px;
+background-color: #007bff;
+color: white;
+border: none;
+cursor: pointer;
+border-radius: 5px;
+transition: background 0.3s ease;
+}
+
+/* Эффект наведения для кнопок */
+button:hover {
+background-color: #0056b3;
+}
+
+/* Кнопка закрытия модального окна */
+.modal-content > span {
+position: absolute;
+top: 10px;
+right: 10px;
+font-size: 24px;
+cursor: pointer;
+}

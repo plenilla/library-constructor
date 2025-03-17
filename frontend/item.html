@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="./static/css/style.css">
+    <title>Document</title>
+    <style>
+        .highlighted {
+            display: block; 
+            padding-left: 10px; 
+            margin: 5px 0; 
+            color: black; 
+            text-indent: 50px;
+        }
+        /* Анимация для удаления */
+        .delete-animation {
+            animation: fadeOutRed 1s forwards;
+        }
+        
+        @keyframes fadeOutRed {
+            0% {
+                background-color: red;
+            }
+            100% {
+                opacity: 0;
+                height: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Items</h1>
+    <input type="text" id="id" placeholder="Введите ID">
+    <button onclick="findItem()">Find</button>
+    <div id="items"></div>
+
+    <h2>Create New Item</h2>
+    <input type="text" id="name" placeholder="Name">
+    <input type="text" id="description" placeholder="Description">
+    <input type="text" id="color" placeholder="color">
+    <button onclick="createItem()">Create</button>
+    <h2>Books</h2>
+    <div id="books"></div>
+    <h2>Create New Book</h2>
+    <textarea type="input" id="name_book" placeholder="Name"></textarea>
+    <textarea  type="textarea" id="description_book" placeholder="Description"></textarea>
+    <button onclick="createBook()">Create</button>
+    <script>
+        async function loadItems() {
+            try {
+                const response = await fetch('http://localhost:8000/items');
+                const items = await response.json();       
+                let tableHTML = `
+                    <table border="1">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Color</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                let modalsHTML = "";
+                items.forEach(item => {
+                    tableHTML += `
+                        <tr id="item-${item.id}">
+                            <td>${item.id}</td>
+                            <td>${item.name}</td>
+                            <td>${item.description}</td>
+                            <td>${item.color}</td>
+                            <td>
+                                <button onclick="openModal('modal-${item.id}')">Update</button>
+                                <button onclick="deleteItem('${item.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                    modalsHTML += `
+                        <div class="modal" id="modal-${item.id}">
+                            <div class="modal-content">
+                                <span onclick="closeModal('modal-${item.id}')" style="position:absolute; top:10px; right:10px; cursor:pointer;">&times;</span>
+                                <h2>Update Item</h2>
+                                <input type="text" id="name_update-${item.id}" placeholder="Name" value="${item.name}">
+                                <input type="text" id="description_update-${item.id}" placeholder="Description" value="${item.description}">
+                                <input type="text" id="color_update-${item.id}" placeholder="Color" value="${item.color}">
+                                <button onclick="updateItem('${item.id}')">Update</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                tableHTML += `
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('items').innerHTML = tableHTML;
+                const modalsContainer = document.getElementById('modals');
+                if (modalsContainer) {
+                    modalsContainer.innerHTML = modalsHTML;
+                } else {
+                    document.body.insertAdjacentHTML('beforeend', modalsHTML);
+                }
+            } catch (error) {
+                console.error('Error loading items:', error);
+                document.getElementById('items').innerHTML = 'Failed to load items';
+            }
+        }
+
+        // Загрузка элементов
+        async function loadBooks() {
+            try {
+                const response = await fetch(`http://localhost:8000/books`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch books');
+                }
+                const books = await response.json();
+                const bookView = books.map(book => `  
+                <div id="book-${book.id}">
+                    <h3>${book.name}</h3>
+                    <div>${book.description}</div> 
+                    <button onclick="deleteBook('${book.id}')">Delete</button>
+                </div>
+            `).join('');
+                document.getElementById('books').innerHTML = bookView;
+            } catch (error) {
+                console.error('Error loading books:', error);
+                document.getElementById('books').innerHTML = 'Failed to load books';
+            }
+        }
+        // Открытие модального окна для редактирования
+       function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+
+        // Закрытие модального окна
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Обновление данных элемента
+        async function updateItem(itemID){
+            try {
+                const name = document.getElementById(`name_update-${itemID}`).value;
+                const description = document.getElementById(`description_update-${itemID}`).value;
+                const color = document.getElementById(`color_update-${itemID}`).value;
+                await fetch(`http://localhost:8000/items/${itemID}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, description, color })
+                });
+                closeModal(`modal-${itemID}`);
+                loadItems();
+            } catch (error) {
+                console.error('Error updating item:', error);
+            }
+        }
+
+        // Поиск элемента
+        async function findItem() {
+            try {
+                const id = document.getElementById("id").value.trim();
+                if (id === "") {
+                    loadItems();
+                    return;
+                }
+                const response = await fetch(`http://localhost:8000/items/${id}`);
+                if (response.ok) {
+                    const item = await response.json();
+                    document.getElementById('items').innerHTML = `
+                    <table border="1">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Color</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${item.id}</td>
+                                <td>${item.name}</td>
+                                <td>${item.description}</td>
+                                <td>${item.color}</td>
+                            </tr>
+                        </tbody>
+                    </table>`;
+                } else {
+                    document.getElementById('items').innerHTML = 'not found';
+                }
+            } catch (error) {
+                console.error('Error loading items:', error);
+                document.getElementById('items').innerHTML = 'Failed to load items';
+            }
+        }
+
+        // Создание нового элемента
+        async function createItem() {
+            try {
+                const name = document.getElementById('name').value;
+                const description = document.getElementById('description').value;
+                const color = document.getElementById('color').value;
+                await fetch('http://localhost:8000/items/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, description, color })
+                });
+                loadItems(); // Обновляем список
+            } catch (error) {
+                console.error('Error creating item:', error);
+                document.getElementById('items').innerHTML = 'Failed to load items';
+            }
+        }
+
+        async function createBook() {
+            const nameBook = document.getElementById('name_book').value; // Получаем название книги
+            const descriptionBook = document.getElementById('description_book').value; // Получаем описание книги
+        
+            // Проверяем, что оба поля не пустые
+            if (!nameBook.trim() || !descriptionBook.trim()) {
+                alert("Пожалуйста, заполните все поля.");
+                return;
+            }
+        
+            // Разделяем описание на абзацы
+            const paragraphs = descriptionBook.split('\n').filter(p => p.trim() !== '');
+            const highlightedDescription = paragraphs.map(para => `<span class="highlighted">${para}</span>`).join('<br>');
+        
+            const bookData = {
+                name: nameBook,
+                description: highlightedDescription, 
+            };
+        
+            try {
+                const response = await fetch('http://localhost:8000/books', {
+                    method: 'POST',
+                    body: JSON.stringify(bookData),
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+        
+                if (!response.ok) {
+                    throw new Error('Failed to create book');
+                }
+        
+                await loadBooks(); // Перезагрузить книги
+                document.getElementById('name_book').value = ''; // Очищаем поле названия
+                document.getElementById('description_book').value = ''; // Очищаем поле описания
+            } catch (error) {
+                console.error('Error creating book:', error);
+            }
+        }
+        
+
+
+        // Удаление элемента
+        async function deleteItem(itemID) {
+            // Запрос на подтверждение удаления
+            const isConfirmed = confirm("Вы уверены, что хотите удалить этот элемент?");
+            if (isConfirmed) {
+                try {
+                    // Анимация перед удалением
+                    const row = document.getElementById(`item-${itemID}`);
+                    row.classList.add('delete-animation'); 
+
+                    // Удаляем элемент через API после задержки
+                    setTimeout(async () => {
+                        await fetch(`http://localhost:8000/items/${itemID}`, {
+                            method: 'DELETE',
+                            headers: {'Content-Type': 'application/json'},
+                        });
+                        loadItems(); // Обновляем список элементов после удаления
+                    }, 500); 
+                } catch (error) {
+                    console.error('Error deleting item:', error);
+                    document.getElementById('items').innerHTML = 'Failed to delete item';
+                }
+            }
+        }
+
+        async function deleteBook(BookID) {
+            // Запрос на подтверждение удаления
+            const isConfirmed = confirm("Вы уверены, что хотите удалить этот элемент?");
+            if (isConfirmed) {
+                try {
+                    // Анимация перед удалением
+                    const row = document.getElementById(`book-${BookID}`);
+                    row.classList.add('delete-animation'); 
+
+                    // Удаляем элемент через API после задержки
+                    setTimeout(async () => {
+                        await fetch(`http://localhost:8000/books/${BookID}`, {
+                            method: 'DELETE',
+                            headers: {'Content-Type': 'application/json'},
+                        });
+                        loadBooks(); // Обновляем список элементов после удаления
+                    }, 500); 
+                } catch (error) {
+                    console.error('Error deleting item:', error);
+                    document.getElementById('items').innerHTML = 'Failed to delete item';
+                }
+            }
+        }
+        
+
+        // Инициализация загрузки элементов
+        loadItems();
+        loadBooks();
+    </script>
+</body>
+</html>

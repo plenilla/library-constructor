@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Конструктор разделов</title>
+  <style>
+    /* Добавляем стили для фиксированной панели */
+    .fixed-controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      padding: 16px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+    }
+
+    .section {
+      border: 1px solid #ddd;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+    }
+
+    .button {
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .content-item {
+      position: relative;
+      border: 1px dashed #aaa;
+      padding: 8px;
+      margin: 6px 0 6px 20px;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-text {
+      flex-grow: 1;
+      min-height: 50px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+
+    .editing-input {
+      display: none;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+
+    .editing-input.visible {
+      display: block;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Конструктор разделов</h1>
+  <h2>Create New Item</h2>
+  <input type="text" id="titleSections" placeholder="Название раздела...">
+  <button id="createSections" class="button">Добавить новый раздел</button>
+  
+  <ul id="sectionsList" style="list-style-type: none; padding: 0;"></ul>
+
+  <!-- Фиксированная панель с кнопками -->
+  <div class="fixed-controls">
+    <button id="editAll" class="button">Редактировать все</button>
+    <button id="saveAll" class="button hidden">Сохранить все</button>
+  </div>
+
+  <script>
+    let isEditing = false;
+    const editStates = new Map();
+
+    // Активация режима редактирования
+    function enableEditing() {
+      isEditing = true;
+      document.querySelectorAll('.content-text').forEach((textElement, index) => {
+        const contentItem = textElement.closest('.content-item');
+        const input = contentItem.querySelector('.editing-input');
+        const textId = textElement.dataset.textId;
+        
+        input.value = textElement.textContent.trim();
+        textElement.classList.add('hidden');
+        input.classList.add('visible');
+        editStates.set(textId, input.value);
+      });
+      
+      document.getElementById('editAll').classList.add('hidden');
+      document.getElementById('saveAll').classList.remove('hidden');
+    }
+
+    // Сохранение всех изменений
+    async function saveAllChanges() {
+      const updates = [];
+      
+      editStates.forEach((value, key) => {
+        updates.push(
+          fetch(`http://localhost:8000/page/textForcontent/${key}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text_data: value })
+          })
+        );
+      });
+
+      try {
+        await Promise.all(updates);
+        alert('Все изменения сохранены!');
+        location.reload();
+      } catch (error) {
+        console.error('Ошибка сохранения:', error);
+        alert('Ошибка при сохранении изменений');
+      }
+    }
+
+    // Обработчики событий для фиксированных кнопок
+    document.getElementById('editAll').addEventListener('click', enableEditing);
+    document.getElementById('saveAll').addEventListener('click', saveAllChanges);
+
+    // Обработчик изменений в инпутах
+    document.addEventListener('input', (e) => {
+      if (e.target.classList.contains('editing-input') && isEditing) {
+        const textId = e.target.closest('.content-item').querySelector('.content-text').dataset.textId;
+        editStates.set(textId, e.target.value);
+      }
+    });
+
+    // Остальной код остается без изменений
+    async function loadSectionsAndContents() {
+      try {
+        const [sectionsResponse, contentsResponse] = await Promise.all([
+          fetch('http://localhost:8000/page/sections'),
+          fetch('http://localhost:8000/page/contents/')
+        ]);
+
+        const [sections, contents] = await Promise.all([
+          sectionsResponse.json(),
+          contentsResponse.json()
+        ]);
+
+        const sectionsList = document.getElementById('sectionsList');
+        sectionsList.innerHTML = sections.map(section => {
+          const sectionContents = contents.filter(content => content.section_id == section.id);
+
+          const contentHtml = sectionContents.map(content => `
+            <li class="content-item" data-id="${content.id}">
+                <span class="content-text" data-text-id="${content.text_data?.id || ''}">
+                    ${content.text_data?.text_data || "No text"}
+                </span>
+                <button class="delete-content-btn button">delete-text</button>
+                <input type="text" class="editing-input" />
+            </li>
+          `).join('');
+
+          return `
+            <li class="section-item" data-id="${section.id}">
+                <span class="section-title"><h2>${section.title}</h2></span>
+                <button class="edit-btn button">edit</button>
+                <button class="delete-btn button">delete</button>
+                <button class="add-text-btn button">add-text</button>
+                <button class="add-image-btn button">add-image</button>
+                <ul class="contentsList" style="list-style-type: none; padding: 0;">
+                  ${contentHtml}
+                </ul>
+              </li>
+          `;
+        }).join('');
+
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', handleEditClick);
+          });
+          document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', handleDeleteClick);
+          });
+          document.querySelectorAll('.add-text-btn').forEach(btn => {
+            btn.addEventListener('click', handleAddContentClick);
+          });
+          document.querySelectorAll('.delete-content-btn').forEach(btn => {
+            btn.addEventListener('click', handleDeleteContent);
+          });
+
+      } catch (error) {
+        console.error('Error loading data:', error);
+        alert('Ошибка загрузки данных');
+      }
+    }
+
+
+
+    // Загрузка списка разделов
+    async function updateSection(id, newTitle) {
+        try {
+          const response = await fetch(`http://localhost:8000/page/sections/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ title: newTitle })
+          });
+          location.reload();
+          if (!response.ok) throw new Error('Ошибка обновления');
+          return await response.json();
+        } catch (error) {
+          console.error('Error updating item:', error);
+          alert('Не удалось обновить раздел');
+        }
+      }
+  
+      // Обработчик клика для кнопок редактирования/сохранения
+      function handleEditClick(event) {
+        const li = event.target.closest('li');
+        const sectionId = li.dataset.id;
+        const titleElement = li.querySelector('.section-title');
+        const input = li.querySelector('input');
+        
+        if (event.target.textContent === 'edit') {
+          // Включаем режим редактирования
+          const input = document.createElement('input');
+          input.value = titleElement.textContent;
+          titleElement.replaceWith(input);
+          event.target.textContent = 'save';
+        } else {
+          // Сохраняем изменения
+          const newTitle = input.value;
+          updateSection(sectionId, newTitle).then(() => {
+            titleElement.textContent = newTitle;
+            input.replaceWith(titleElement);
+            event.target.textContent = 'edit';         
+          });
+        }
+    }
+
+    // Создание нового раздела
+    async function createSections() {
+    const isConfirmed = confirm("Вы уверены, что хотите добавить этот элемент?");
+        if (isConfirmed) {
+            try {
+                const titleSections = document.getElementById('titleSections').value;
+                const response = await fetch('http://localhost:8000/page/sections', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ title: titleSections }) 
+                });
+                loadSections();
+                if (!response.ok) throw new Error('Ошибка создания');
+
+                const result = await response.json();
+                console.log('Создано:', result);
+                    
+                // Очищаем поле ввода после успешного создания
+                document.getElementById('titleSections').value = '';
+
+                // Обновляем список разделов
+                loadSections();
+            }
+            catch (error) {
+                console.error('Error creating item:', error);
+                alert('Не удалось создать новый раздел');
+            }
+        }
+    }
+
+    async function deleteSections(id){
+        try{
+            const response = await fetch(`http://localhost:8000/page/sections/${id}`, {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+            });
+        }catch(error) {
+            console.error('Error deleting section:', error);
+            alert('Не удалось удалить');
+        }
+    }
+    function handleDeleteClick(event){
+        const li = event.target.closest('li');
+        const sectionId = li.dataset.id;
+        const isConfirmed = confirm("Вы уверены, что хотите удалить этот раздел?");
+        if (isConfirmed) {
+            deleteSections(sectionId);
+        }
+    }
+
+    async function handleAddContentClick(event) {
+        // Находим элемент раздела, внутри которого нажата кнопка "add"
+        const sectionItem = event.target.closest('.section-item');
+        const sectionId = sectionItem.getAttribute('data-id');
+        
+        // Запрашиваем у пользователя текст нового контента
+        const userText = prompt("Введите текст для нового контента:");
+        if (!userText) return;
+        
+        try {
+          // Сначала создаём текст через endpoint /textForcontent/
+          const textResponse = await fetch('http://localhost:8000/page/textForcontent/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ text_data: userText })
+          });
+          if (!textResponse.ok) {
+            throw new Error("Ошибка создания текста");
+          }
+          const newText = await textResponse.json();
+          
+          // Затем создаём контент, связывающий раздел с созданным текстом
+          const contentResponse = await fetch('http://localhost:8000/page/contents/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ section_id: parseInt(sectionId), text_id: newText.id })
+          });
+          if (!contentResponse.ok) {
+            throw new Error("Ошибка создания контента");
+          }
+          const newContent = await contentResponse.json();
+          console.log("Создан новый контент:", newContent);
+          
+          // Обновляем отображение разделов и контента
+          loadSectionsAndContents();
+        } catch (error) {
+          console.error("Error adding content:", error);
+          alert("Не удалось добавить контент");
+        }
+      }
+    
+
+      async function handleDeleteContent(event) {
+        const contentItem = event.target.closest('.content-item');
+        const contentId = contentItem.getAttribute('data-id');
+        const sectionId = contentItem.closest('.section-item').getAttribute('data-id');
+      
+        // Подтверждение удаления
+        const isConfirmed = confirm("Вы уверены, что хотите удалить этот контент?");
+        if (!isConfirmed) return;
+      
+        try {
+          // Сначала удаляем контент
+          const deleteContentResponse = await fetch(`http://localhost:8000/page/contents/${contentId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+          });
+      
+          if (!deleteContentResponse.ok) {
+            throw new Error("Ошибка удаления контента");
+          }    
+          // Обновляем список контента и разделов после удаления
+          loadSectionsAndContents();
+        } catch (error) {
+          console.error("Error deleting content and text:", error);
+          alert("Не удалось удалить контент и текст");
+        }
+      }
+    
+      async function updateTextContent(textId, newText) {
+        try {
+            const response = await fetch(`http://localhost:8000/page/textForcontent/${textId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text_data: newText })  // Отправляем новый текст
+            });
+    
+            if (!response.ok) {
+                throw new Error('Ошибка обновления текста');
+            }
+    
+            const updatedContent = await response.json();  // Получаем обновленные данные
+            console.log('Updated content:', updatedContent);
+    
+            return updatedContent;
+        } catch (error) {
+            console.error('Error updating text:', error);
+            alert('Не удалось обновить текст');
+        }
+    }
+    
+    function handleEditTextClick(event) {
+        const contentItem = event.target.closest('.content-item');
+        const contentId = contentItem.dataset.id;
+        const textElement = contentItem.querySelector('.content-text');
+  
+        const textId = textElement.dataset.textId;
+        console.log("Content ID:", contentId);
+        console.log("Text ID:", textId);
+  
+        const input = contentItem.querySelector('.editing-input'); // Находим существующий input
+  
+        if (event.target.textContent === 'update-text') {
+          // Включаем режим редактирования
+          input.value = textElement.textContent.trim();  // Заполняем input текущим текстом
+          textElement.classList.add('hidden');  // Скрываем текст
+          input.classList.add('visible');  // Показываем input
+  
+          event.target.textContent = 'save';  // Меняем текст кнопки на "save"
+        } else {
+          // Сохраняем изменения
+          const newText = input.value;  // Получаем новый текст из input
+          updateTextContent(textId, newText).then(updatedContent => {
+            // После успешного редактирования обновляем DOM
+  
+            // Скрываем input
+            input.classList.remove('visible');
+            input.classList.add('hidden');
+  
+            // Создаем новый span с обновленным текстом
+            const updatedTextElement = document.createElement('span');
+            updatedTextElement.textContent = updatedContent.text_data.text_data;
+            updatedTextElement.classList.add('content-text');
+            updatedTextElement.dataset.textId = updatedContent.text_data.id;  // Обновляем ID текста
+  
+            // Заменяем input на новый span с текстом
+            input.replaceWith(updatedTextElement);
+  
+            event.target.textContent = 'update-text';  // Меняем кнопку обратно на "update-text"
+  
+            // Обновляем разделы и контент
+            loadSectionsAndContents();  // Вы можете перезагрузить данные, если необходимо
+          });
+        }
+      }
+      async function createSections() {
+        const isConfirmed = confirm("Вы уверены, что хотите добавить этот элемент?");
+            if (isConfirmed) {
+                try {
+                    const titleSections = document.getElementById('titleSections').value;
+                    const response = await fetch('http://localhost:8000/page/sections', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ title: titleSections }) 
+                    });
+                    loadSections();
+                    if (!response.ok) throw new Error('Ошибка создания');
+    
+                    const result = await response.json();
+                    console.log('Создано:', result);
+                        
+                    // Очищаем поле ввода после успешного создания
+                    document.getElementById('titleSections').value = '';
+    
+                    // Обновляем список разделов
+                    loadSections();
+                }
+                catch (error) {
+                    console.error('Error creating item:', error);
+                    alert('Не удалось создать новый раздел');
+                }
+            }
+        }
+  
+      // Привязка обработчиков и начальная загрузка
+      document.addEventListener('DOMContentLoaded', loadSectionsAndContents);
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyd
+*.pyo
+*.so
+*.egg-info/
+dist/
+build/
+# Виртуальное окружение
+
+venv/
+env/
+.venv/
+
+# IDE и редакторы
+.vscode/
+.idea/
+.DS_Store
+
+# FastAPI (если используете)
+.cache/
