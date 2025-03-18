@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
 from core.models.db_helper import get_db
-from core.models import User  
+from core.models import User, UserRole  
 from sqlalchemy.future import select
 
 router = APIRouter()
@@ -23,17 +23,28 @@ async def login(
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
     # Сохраняем информацию о пользователе в сессии
-    request.session["user_id"] = user.id
-    request.session["role"] = user.role
+    request.session["user_id"] = str(user.id)
+    request.session["role"] = user.role.value
 
     # Перенаправляем пользователя в зависимости от роли
-    if user.role == "reader":
+    redirect_map = {
+        UserRole.READER: "/reader_home",
+        UserRole.LIBRARIAN: "/librarian_home",
+        UserRole.ADMIN: "/admin_dashboard"
+    }
+    
+    return RedirectResponse(
+        url=redirect_map.get(user.role, "/"),
+    )
+    
+    
+    """if user.role == "READER":
         return RedirectResponse(url="/reader_home", status_code=302)
-    elif user.role == "librarian":
+    elif user.role == "LIBRARIAN":
         return RedirectResponse(url="/librarian_home", status_code=302)
     else:
         # Если роль не распознана, можно перенаправить на главную страницу
-        return RedirectResponse(url="/", status_code=302)
+        return RedirectResponse(url="/", status_code=302)"""
 
 @router.get("/logout", response_class=HTMLResponse)
 async def logout(request: Request):
