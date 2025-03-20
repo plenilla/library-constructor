@@ -2,9 +2,13 @@ from fastapi import APIRouter, Form, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
+from sqlalchemy.future import select
+
+
 from core.models.db_helper import get_db
 from core.models import User, UserRole  
-from sqlalchemy.future import select
+from schemas.users_schemas import UserLogin
+
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -12,15 +16,23 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 @router.post("/login", response_class=HTMLResponse)
 async def login(
     request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    form_data: UserLogin = Depends(UserLogin.as_form),
 ):
     # Поиск пользователя по username
-    result = await db.execute(select(User).where(User.username == username))
+    result = await db.execute(select(User).where(User.username == form_data.username))
     user = result.scalar_one_or_none()
-    if not user or not pwd_context.verify(password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    
+    if not user:
+        return "пользователь не найден"
+    
+    
+    
+    # Проверка пароля
+    if not pwd_context.verify(form_data.password, user.hashed_password):
+        return "неправльный пароль"
+      
+      
 
     # Сохраняем информацию о пользователе в сессии
     request.session["user_id"] = str(user.id)
