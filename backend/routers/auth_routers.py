@@ -7,7 +7,7 @@ from sqlalchemy.future import select
 
 from core.models.db_helper import get_db
 from core.models import User, UserRole  
-from schemas.users_schemas import UserLogin
+from schemas.users_schemas import UserLogin, UserCreate
 
 
 router = APIRouter()
@@ -68,23 +68,28 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 @router.post("/register", response_class=HTMLResponse)
 async def register(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    password_confirm: str = Form(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    form_data: UserCreate = Depends(UserCreate.as_form)
 ):
-    if password != password_confirm:
+    if form_data.password != form_data.password_confirm:
         raise HTTPException(status_code=400, detail="Пароли не совпадают")
     
     # Проверка, существует ли уже пользователь
-    result = await db.execute(select(User).where(User.username == username))
-    existing_user = result.scalar_one_or_none()
-    if existing_user:
+    result = await db.execute(select(User).where(User.username == form_data.username))
+    
+    user = result.scalar_one_or_none()
+    
+    if user:
         raise HTTPException(status_code=400, detail="Пользователь с таким логином уже существует")
     
-    hashed_password = pwd_context.hash(password)
-    new_user = User(username=username, hashed_password=hashed_password, role="reader")
+    hashed_password = pwd_context.hash(form_data.password)
+    
+    new_user = User(
+        username=form_data.username, 
+        hashed_password=hashed_password, 
+        role="reader"
+        )
+    
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
