@@ -77,13 +77,13 @@ async def register_page(request: Request):
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
-@app.get("/reader_home", response_class=HTMLResponse)
+@app.get("/reader_home/", response_class=HTMLResponse)
 async def reader_home(request: Request):
     if request.session.get("role") != "reader":
         raise HTTPException(status_code=403, detail="Access forbidden")
     return templates.TemplateResponse("reader_home.html", {"request": request})
 
-@app.get("/librarian_home", response_class=HTMLResponse)
+@app.get("/librarian_home/", response_class=HTMLResponse)
 async def librarian_home(request: Request):
     if request.session.get("role") != "librarian":
         raise HTTPException(status_code=403, detail="Access forbidden")
