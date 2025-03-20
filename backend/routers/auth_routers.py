@@ -28,15 +28,16 @@ async def login(
 
     # Перенаправляем пользователя в зависимости от роли
     redirect_map = {
-        UserRole.READER: "/reader_home",
-        UserRole.LIBRARIAN: "/librarian_home",
-        UserRole.ADMIN: "/admin_dashboard"
+        UserRole.READER: "/reader_home/",
+        UserRole.LIBRARIAN: "/librarian_home/",
+        UserRole.ADMIN: "/admin_dashboard/"
     }
     
     return RedirectResponse(
         url=redirect_map.get(user.role, "/"),
+        status_code=302
     )
-    
+
     
     """if user.role == "READER":
         return RedirectResponse(url="/reader_home", status_code=302)
