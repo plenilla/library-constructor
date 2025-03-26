@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from routers.items import router as items_router
@@ -7,6 +7,8 @@ from routers.sectionsRazdels_routers import router as section_router
 from routers.textRazdels_routers import router as content_text
 from routers.contentRazdels_routers import router as razdel_router
 from routers.content_book_routers import router as content_book
+from core.models.db_helper import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from fastapi.responses import HTMLResponse
@@ -61,9 +63,14 @@ app.add_middleware(
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Эндпоинты для рендеринга шаблонов
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+# @app.get("/", response_class=HTMLResponse)
+# async def index(request: Request):
+#     return templates.TemplateResponse("index.html", {"request": request})
+@app.get("/")
+async def root(session: AsyncSession = Depends(get_db)):
+    # Пример запроса
+    # result = await session.execute("SELECT 1")
+    return {"message": "MySQL connection successful"}
 
 @app.get("/item/", response_class=HTMLResponse)
 async def item_page(request: Request):
