@@ -11,11 +11,8 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 
 
-from routers.auth_routers import router as users_router
-from routers.sectionsRazdels_routers import router as section_router
-from routers.textRazdels_routers import router as content_text
-from routers.contentRazdels_routers import router as razdel_router
-from routers.content_book_routers import router as content_book
+from app.auth.auth_routers import router as users_router
+from app.constructor.exhibitions_routers import router as exhibitions_router
 from core.models import get_db
 
 
@@ -25,10 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Подключаем роутеры
 app.include_router(users_router, prefix="/users", tags=["users"])
-app.include_router(section_router, prefix="/page", tags=["pages"])
-app.include_router(content_text, prefix="/page", tags=["pages"])
-app.include_router(razdel_router, prefix="/page", tags=["pages"])
-app.include_router(content_book, prefix="/page", tags=["pages"])
+app.include_router(exhibitions_router, prefix="/page", tags=["pages"])
 
 
 # Добавляем SessionMiddleware
@@ -40,7 +34,11 @@ app.mount(
     StaticFiles(directory=os.path.join(BASE_DIR, "..", "frontend", "static")),
     name="static",
 )
-app.mount("/picture", StaticFiles(directory="picture"), name="picture")
+app.mount(
+    "/picture",
+    StaticFiles(directory=os.path.join(BASE_DIR, "..", "frontend", "static", "picture")),
+    name="picture",
+)
 
 # Инициализируем шаблоны
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "..", "frontend"))
@@ -69,10 +67,8 @@ async def root(session: AsyncSession = Depends(get_db)):
     except SQLAlchemyError as e:
         # Можно добавить логирование ошибки
         print(f"Database error: {str(e)}")
-        return {
-            "error": "MySQL connection failed",
-            "details": str(e)
-        }, 500
+        return {"error": "MySQL connection failed", "details": str(e)}, 500
+
 
 @app.get("/item/", response_class=HTMLResponse)
 async def item_page(request: Request):
