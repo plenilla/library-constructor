@@ -1,9 +1,10 @@
 from sqlalchemy import ForeignKey, Text, Integer
 from sqlalchemy.orm import relationship, Mapped, mapped_column
+from typing import Optional, List
 
 
 from .base import Base
-from typing import Optional, List
+
 
 
 class Section(Base):
