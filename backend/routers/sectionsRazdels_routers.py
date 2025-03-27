@@ -4,12 +4,11 @@ from sqlalchemy import select
 from typing import List
 
 
-from core.models import Section
-from schemas.razdels_schemas import (
+from core.models import Section, get_db
+from schemas.exhibitions import (
     SectionResponse,
     SectionBase,
 )
-from core.models.db_helper import get_db
 
 
 router = APIRouter()

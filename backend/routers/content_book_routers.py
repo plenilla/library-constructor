@@ -8,9 +8,8 @@ import uuid
 from sqlalchemy import select
 
 
-from core.models import Book
-from schemas.razdels_schemas import BookResponse
-from core.models.db_helper import get_db
+from core.models import Book, get_db
+from schemas.exhibitions import BookResponse
 
 
 router = APIRouter()
