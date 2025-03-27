@@ -14,8 +14,14 @@ DB_NAME = os.getenv("DB_NAME")
 
 
 class Setting(BaseSettings):
-    db_url: str = f"mysql+aiomysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:3306/{DB_NAME}"
+    SECRET_KEY: str
+    db_url: str 
     db_echo: bool = True
+    
+    class Config:
+        env_file = ".env"
 
 
 settings = Setting()
+
+# = f"mysql+aiomysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:3306/{DB_NAME}"

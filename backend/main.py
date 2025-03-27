@@ -1,64 +1,27 @@
-from fastapi import FastAPI, HTTPException, Request, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
-from passlib.context import CryptContext
-from starlette.middleware.sessions import SessionMiddleware
-import os
 
 
+from app.middleware import setup_middleware
 from app.auth.auth_routers import router as users_router
 from app.constructor.exhibitions_routers import router as exhibitions_router
+from app.pages import router as page_router
 from core.models import get_db
-
 
 app = FastAPI()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Подключаем роутеры
 app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(exhibitions_router, prefix="/page", tags=["pages"])
-
+app.include_router(page_router)
 
 # Добавляем SessionMiddleware
-app.add_middleware(SessionMiddleware, secret_key="YOUR_SECRET_KEY_HERE")
-
-# Подключаем папку static
-app.mount(
-    "/static",
-    StaticFiles(directory=os.path.join(BASE_DIR, "..", "frontend", "static")),
-    name="static",
-)
-app.mount(
-    "/picture",
-    StaticFiles(directory=os.path.join(BASE_DIR, "..", "frontend", "static", "picture")),
-    name="picture",
-)
-
-# Инициализируем шаблоны
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "..", "frontend"))
-
-# Настройка CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Контекст для хэширования паролей
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+setup_middleware(app)
 
 
-# Эндпоинты для рендеринга шаблонов
-# @app.get("/", response_class=HTMLResponse)
-# async def index(request: Request):
-#     return templates.TemplateResponse("index.html", {"request": request})
 @app.get("/")
 async def root(session: AsyncSession = Depends(get_db)):
     try:
@@ -68,35 +31,6 @@ async def root(session: AsyncSession = Depends(get_db)):
         # Можно добавить логирование ошибки
         print(f"Database error: {str(e)}")
         return {"error": "MySQL connection failed", "details": str(e)}, 500
-
-
-@app.get("/item/", response_class=HTMLResponse)
-async def item_page(request: Request):
-    return templates.TemplateResponse("item.html", {"request": request})
-
-
-@app.get("/user-regit/", response_class=HTMLResponse)
-async def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
-
-
-@app.get("/user-login/", response_class=HTMLResponse)
-async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
-
-
-@app.get("/reader_home/", response_class=HTMLResponse)
-async def reader_home(request: Request):
-    if request.session.get("role") != "reader":
-        raise HTTPException(status_code=403, detail="Access forbidden")
-    return templates.TemplateResponse("reader_home.html", {"request": request})
-
-
-@app.get("/librarian_home/", response_class=HTMLResponse)
-async def librarian_home(request: Request):
-    if request.session.get("role") != "librarian":
-        raise HTTPException(status_code=403, detail="Access forbidden")
-    return templates.TemplateResponse("librarian_home.html", {"request": request})
 
 
 if __name__ == "__main__":
