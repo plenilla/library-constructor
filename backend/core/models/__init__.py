@@ -8,10 +8,11 @@ __all__ = (
     "Item",
     "TextArray",
     "UserRole",
+    "get_db",
 )
 
 from .base import Base
-from .db_helper import DatabaseHelper, db_helper
+from .db_helper import DatabaseHelper, db_helper, get_db
 from .razdels_models import Content, Section, TextArray, Book
 from .item import Item
 from .users_models import User, UserRole
