@@ -5,7 +5,7 @@ __all__ = (
     "db_helper",
     "Content",
     "User",
-    "Item",
+    "Book",
     "TextArray",
     "UserRole",
     "get_db",
@@ -13,6 +13,5 @@ __all__ = (
 
 from .base import Base
 from .db_helper import DatabaseHelper, db_helper, get_db
-from .razdels_models import Content, Section, TextArray, Book
-from .item import Item
+from .exhibitions import Content, Section, TextArray, Book
 from .users_models import User, UserRole
