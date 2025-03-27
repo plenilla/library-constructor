@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Text, Integer
+from sqlalchemy import ForeignKey, Text, Boolean, Column
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from typing import Optional, List
 
@@ -6,11 +6,26 @@ from typing import Optional, List
 from .base import Base
 
 
+class Exhibition(Base):
+    title: Mapped[str] = mapped_column(Text)
+    sections: Mapped[List["Section"]] = relationship(
+        back_populates="exhibitions", lazy="selectin", cascade="all, delete-orphan"
+    )
+    is_published = Column(Boolean, default=False)
+
 
 class Section(Base):
     title: Mapped[str] = mapped_column(Text)
     contents: Mapped[List["Content"]] = relationship(
         back_populates="sections", lazy="selectin", cascade="all, delete-orphan"
+    )
+    exhibition_id: Mapped[int] = mapped_column(
+        ForeignKey("exhibitions.id", ondelete="CASCADE")
+    )
+    exhibitions: Mapped["Exhibition"] = relationship(
+        "Exhibition",
+        back_populates="sections",
+        lazy="selectin",
     )
 
 
