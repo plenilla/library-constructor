@@ -8,12 +8,12 @@ from core.models import (
     Content,
     TextArray,
     Book,
+    get_db,
 )
-from schemas.razdels_schemas import (
+from schemas.exhibitions import (
     ContentResponse,
     ContentBase,
 )
-from core.models.db_helper import get_db
 
 
 router = APIRouter()

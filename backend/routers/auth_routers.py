@@ -6,7 +6,7 @@ from sqlalchemy.future import select
 
 
 from core.models import User, UserRole, get_db
-from schemas.users_schemas import UserLogin, UserCreate
+from schemas.users import UserLogin, UserCreate
 
 
 router = APIRouter()

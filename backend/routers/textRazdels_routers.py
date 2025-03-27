@@ -4,9 +4,8 @@ from typing import List
 from sqlalchemy import select
 
 
-from core.models import TextArray
-from schemas.razdels_schemas import TextArrayResponse, TextArrayBase
-from core.models.db_helper import get_db
+from core.models import TextArray, get_db
+from schemas.exhibitions import TextArrayResponse, TextArrayBase
 
 
 router = APIRouter()
