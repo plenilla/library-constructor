@@ -23,7 +23,7 @@ router.mount(
 )
 
 # Инициализируем шаблоны
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "..", "frontend"))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "..", "..", "frontend"))
 
 
 @router.get("/item/", response_class=HTMLResponse)
