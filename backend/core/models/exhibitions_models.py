@@ -62,7 +62,7 @@ class Content(Base):
 
     text_id = Column(
         Integer,
-        ForeignKey("textarrays.id"),  # Обратите внимание на имя таблицы
+        ForeignKey("textarrays.id"),  
         nullable=True,
     )
     text_data = relationship(

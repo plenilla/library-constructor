@@ -9,7 +9,7 @@ class DatabaseHelper:
         self.engine = create_async_engine(
             url=url,
             echo=echo,
-            future=True,  # Использование современного API SQLAlchemy
+            future=True, 
         )
         self.session_factory = async_sessionmaker(
             bind=self.engine,
@@ -36,4 +36,4 @@ async def get_db() -> AsyncSession:
         try:
             yield session
         finally:
-            await session.close()  # Корректное закрытие сессии
+            await session.close()  
