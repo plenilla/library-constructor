@@ -1,5 +1,6 @@
+version: '3.8'
+
 services:
-  # MySQL Database
   db:
     image: mysql:8.0
     container_name: library_mysql
@@ -7,15 +8,40 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: 1423
       MYSQL_DATABASE: test
+      MYSQL_USER: user
+      MYSQL_PASSWORD: 1423
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "1423"]
-      interval: 10s
+      test: ["CMD", "mysqladmin", "ping", "-uuser", "-p1423"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+    networks:
+      - app-network
+
+  app:
+    build: .
+    container_name: fullstack_app
+    ports:
+      - "8000:8000"  
+    environment:
+      DB_HOST: db
+      DB_USER: user
+      DB_PASSWORD: 1423
+      DB_NAME: test
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+
 
 volumes:
   mysql_data:
+
+networks:
+  app-network:
+    driver: bridge
