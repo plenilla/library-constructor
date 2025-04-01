@@ -3,6 +3,18 @@ from typing import Optional, List
 from pydantic import BaseModel, ConfigDict
 
 
+class ExhibitionBase(BaseModel):
+    title: str
+    is_published: bool = False
+
+
+class ExhibitionResponse(ExhibitionBase):
+    id: int
+    sections: List["SectionResponse"] = []
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
 class BookBase(BaseModel):
     title: str
     description: Optional[str] = None
@@ -10,7 +22,7 @@ class BookBase(BaseModel):
 
 
 class BookResponse(BookBase):
-    id: Optional[int] = None
+    id: int
     image: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
