@@ -26,9 +26,9 @@ router.mount(
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "..", "..", "frontend"))
 
 
-@router.get("/item/", response_class=HTMLResponse)
+@router.get("/exhibitions/", response_class=HTMLResponse)
 async def item_page(request: Request):
-    return templates.TemplateResponse("item.html", {"request": request})
+    return templates.TemplateResponse("exhibitions.html", {"request": request})
 
 
 @router.get("/user-regit/", response_class=HTMLResponse)
