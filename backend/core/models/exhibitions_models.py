@@ -1,6 +1,5 @@
 from sqlalchemy import ForeignKey, Text, Boolean, Column, Integer
 from sqlalchemy.orm import relationship
-import enum
 
 from .base import Base
 
@@ -13,6 +12,7 @@ class Exhibition(Base):
         back_populates="exhibitions",
         lazy="selectin",
         cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
 
@@ -31,6 +31,7 @@ class Section(Base):
         back_populates="sections",
         lazy="selectin",
         cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
 
