@@ -50,6 +50,7 @@ async def reader_home(request: Request):
 
 @router.get("/librarian_home/", response_class=HTMLResponse)
 async def librarian_home(request: Request):
+    """Это для того, чтобы читатель смог попасть для теста на страницу"""
     if request.session.get("role") != "librarian":
         raise HTTPException(status_code=403, detail="Access forbidden")
     return templates.TemplateResponse("librarian_home.html", {"request": request})
