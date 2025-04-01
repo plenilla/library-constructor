@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Exhibition Constructor</title>
+    <style>
+        .exhibition {
+            padding: 10px;
+            margin: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .section {
+            margin-left: 20px;
+            padding: 10px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Exhibition Manager</h1>
+
+    <!-- Создание новой выставки -->
+    <div>
+        <input type="text" id="exhibitionTitle" placeholder="Exhibition title">
+        <button onclick="createExhibition()">Create Exhibition</button>
+    </div>
+
+    <!-- Список выставок -->
+    <div id="exhibitionsContainer"></div>
+
+    <script>
+        const API_URL = 'http://localhost:8000/page'
+
+        // Получение всех выставок
+        async function loadExhibitions() {
+            const response = await fetch(`${API_URL}/exhibitions/`)
+            return await response.json()
+        }
+
+        // Отображение выставок
+        async function renderExhibitions() {
+            const container = document.getElementById('exhibitionsContainer')
+            container.innerHTML = ''
+
+            const exhibitions = await loadExhibitions()
+
+            exhibitions.forEach(exhibition => {
+                const div = document.createElement('div')
+                div.className = 'exhibition'
+                div.innerHTML = `
+                    <h3>${exhibition.title}</h3>
+                    <button class="delete-btn" onclick="deleteExhibition(${exhibition.id})">Delete</button>
+                    <div class="sections"></div>
+                `
+
+                div.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('delete-btn')) {
+                        window.location.href = `/exhibitions/${exhibition.id}`
+                    }
+                })
+                container.appendChild(div)
+            })
+        }
+
+        // Создание новой выставки
+        async function createExhibition() {
+            const title = document.getElementById('exhibitionTitle').value
+            await fetch(`${API_URL}/exhibitions/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            })
+            renderExhibitions()
+        }
+
+        // Удаление выставки
+        async function deleteExhibition(exhibitionId) {
+            if (confirm('Delete this exhibition and all its content?')) {
+                await fetch(`${API_URL}/exhibitions/${exhibitionId}`, {
+                    method: 'DELETE'
+                })
+                renderExhibitions()
+            }
+        }
+
+        // Инициализация
+        renderExhibitions();
+    </script>
+</body>
+
+</html>
