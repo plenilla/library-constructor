@@ -28,21 +28,25 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "..", "..", "fronte
 
 @router.get("/exhibitions/", response_class=HTMLResponse)
 async def item_page(request: Request):
+    """ Это страница со списком всех выставок """
     return templates.TemplateResponse("exhibitions.html", {"request": request})
 
 
 @router.get("/user-regit/", response_class=HTMLResponse)
 async def register_page(request: Request):
+    """ Это страница для регистрации """
     return templates.TemplateResponse("register.html", {"request": request})
 
 
 @router.get("/user-login/", response_class=HTMLResponse)
 async def login_page(request: Request):
+    """ Это страница для авторизации """
     return templates.TemplateResponse("login.html", {"request": request})
 
 
 @router.get("/reader_home/", response_class=HTMLResponse)
 async def reader_home(request: Request):
+    """ Это страница читателя, главная страница по сути """
     if request.session.get("role") != "reader":
         raise HTTPException(status_code=403, detail="Access forbidden")
     return templates.TemplateResponse("reader_home.html", {"request": request})
