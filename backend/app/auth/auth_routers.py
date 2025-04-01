@@ -19,6 +19,16 @@ async def login(
     db: AsyncSession = Depends(get_db),
     form_data: UserLogin = Depends(UserLogin.as_form),
 ):
+    """
+    Авторизации на аккаунт
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        request (Request): Запрос на сессию для авторизации
+        form_data (UserLogin): Данные для авторизации
+    Returns:
+        HTMLResponse: Вход пользователя
+    """
     # Поиск пользователя по username
     result = await db.execute(select(User).where(User.username == form_data.username))
     user = result.scalar_one_or_none()
@@ -54,6 +64,15 @@ async def login(
 
 @router.get("/logout", response_class=HTMLResponse)
 async def logout(request: Request):
+    """
+    Авторизации на аккаунт
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        request (Request): Запрос на сессию для выхода
+    Returns:
+        HTMLResponse: Вывод пользователя
+    """
     request.session.clear()
     return RedirectResponse(url="/", status_code=302)
 
@@ -66,6 +85,15 @@ async def register(
     db: AsyncSession = Depends(get_db),
     form_data: UserCreate = Depends(UserCreate.as_form),
 ):
+    """
+    Регистрация пользователя
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        form_data: Данные для регистрации.
+    Returns:
+        HTMLResponse: Регистрация пользователя
+    """
     if form_data.password != form_data.password_confirm:
         raise HTTPException(status_code=400, detail="Пароли не совпадают")
 
