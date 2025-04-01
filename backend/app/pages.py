@@ -14,35 +14,32 @@ router = APIRouter()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-
 # Инициализируем шаблоны
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "..", "..", "frontend"))
 
+
 @router.get("/", response_class=HTMLResponse)
 async def root(request: Request, session: AsyncSession = Depends(get_db)):
+    """ Это главная страница сайта """
     try:
-        # Проверка подключения к БД
         await session.execute(text("SELECT 1"))
 
-        # Рендер главной страницы
-        return templates.TemplateResponse(
-            "index.html", {"request": request}  
-        )
+        return templates.TemplateResponse("index.html", {"request": request})
 
     except SQLAlchemyError as e:
-        # Логируем ошибку
+
         print(f"Database error: {str(e)}")
-        
-        # Возвращаем HTML-страницу с ошибкой
+
         return templates.TemplateResponse(
             "error.html",
             {
                 "request": request,
                 "error_message": "Database connection failed",
-                "error_details": str(e)
+                "error_details": str(e),
             },
-            status_code=500
+            status_code=500,
         )
+
 
 @router.get("/exhibitions/", response_class=HTMLResponse)
 async def item_page(request: Request):
