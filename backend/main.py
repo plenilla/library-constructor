@@ -5,11 +5,11 @@ from sqlalchemy.sql import text
 from contextlib import asynccontextmanager
 
 
-from app.middleware import setup_middleware
-from app.auth.auth_routers import router as users_router
-from app.constructor.exhibitions_routers import router as exhibitions_router
-from app.pages import router as page_router
-from core.models import get_db, Base, engine
+from .app.middleware import setup_middleware
+from .app.auth.auth_routers import router as users_router
+from .app.constructor.exhibitions_routers import router as exhibitions_router
+from .app.pages import router as page_router
+from .core.models import get_db, Base, engine
 
 
 @asynccontextmanager

@@ -3,25 +3,25 @@ from pydantic_settings import BaseSettings
 import os
 
 # данные для входа(в моем случае в БД)
-load_dotenv()
+# load_dotenv()
 
 
-# загрузка данных из .env
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
+# # загрузка данных из .env
+# DB_USER = os.getenv("DB_USER")
+# DB_PASSWORD = os.getenv("DB_PASSWORD")
+# DB_HOST = os.getenv("DB_HOST")
+# DB_NAME = os.getenv("DB_NAME")
 
 
-class Setting(BaseSettings):
+class Settings(BaseSettings):
     SECRET_KEY: str
     db_url: str 
     db_echo: bool = True
     
     class Config:
         env_file = ".env"
+        env_file_encoding = 'utf-8'
 
-
-settings = Setting()
+settings = Settings()
 
 # = f"mysql+aiomysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:3306/{DB_NAME}"

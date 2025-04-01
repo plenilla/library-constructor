@@ -5,8 +5,8 @@ from passlib.context import CryptContext
 from sqlalchemy.future import select
 
 
-from core.models import User, UserRole, get_db
-from app.auth.auth_schemas import UserLogin, UserCreate
+from ...core.models import User, UserRole, get_db
+from ..auth.auth_schemas import UserLogin, UserCreate
 
 
 router = APIRouter()
