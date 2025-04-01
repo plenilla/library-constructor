@@ -32,12 +32,20 @@ from ..constructor.exhibitions_schemas import (
 router = APIRouter()
 
 
-"""Ручки для взаиодействия с выставками"""
+"""Ручки для взаимодействия с выставками"""
 
 
-# Ручка для создания выставки
 @router.get("/exhibitions/", response_model=List[ExhibitionResponse])
 async def get_all_exhibition(db: AsyncSession = Depends(get_db)):
+    """
+    Получить список всех выставок.
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        List[ExhibitionResponse]: Список всех выставок.
+    """
     result = await db.execute(select(Exhibition))
     exhibition = result.scalars().all()
     return exhibition
@@ -47,6 +55,16 @@ async def get_all_exhibition(db: AsyncSession = Depends(get_db)):
 async def create_new_exhibition(
     exhibition_data: ExhibitionBase, db: AsyncSession = Depends(get_db)
 ):
+    """
+    Создать новую выставку.
+
+    Args:
+        exhibition_data (ExhibitionBase): Данные для создания выставки.
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        ExhibitionResponse: Созданная выставка.
+    """
     new_exhibition = Exhibition(**exhibition_data.model_dump())
     db.add(new_exhibition)
     await db.commit()
@@ -56,30 +74,46 @@ async def create_new_exhibition(
 
 @router.delete("/exhibitions/{exhibition_id}")
 async def delete_exhibition(exhibition_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Удалить выставку по ID.
+
+    Args:
+        exhibition_id (int): ID выставки.
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        dict: Сообщение об успешном удалении.
+    """
     result = await db.execute(
         select(Exhibition)
         .where(Exhibition.id == exhibition_id)
-        .options(
-            selectinload(Exhibition.sections).selectinload(Section.contents)
-        )
+        .options(selectinload(Exhibition.sections).selectinload(Section.contents))
     )
     exhibition = result.scalars().first()
-    
+
     if not exhibition:
         raise HTTPException(status_code=404, detail="Exhibition not found")
-    
+
     await db.delete(exhibition)
     await db.commit()
-    
+
     return {"message": "Exhibition and all related sections and contents deleted"}
 
 
-"""Ручка для взаимодействия с разделами"""
+"""Ручки для взаимодействия с разделами"""
 
 
-# Ручка для получения всех разделов
 @router.get("/sections/", response_model=List[SectionResponse])
 async def get_all_sections(db: AsyncSession = Depends(get_db)):
+    """
+    Получить список всех разделов.
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        List[SectionResponse]: Список всех разделов.
+    """
     result = await db.execute(select(Section))
     sections = result.scalars().all()
     return sections
@@ -87,6 +121,16 @@ async def get_all_sections(db: AsyncSession = Depends(get_db)):
 
 @router.post("/sections/", response_model=SectionResponse)
 async def create_section(section_data: SectionBase, db: AsyncSession = Depends(get_db)):
+    """
+    Создать новый раздел.
+
+    Args:
+        section_data (SectionBase): Данные для создания раздела.
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        SectionResponse: Созданный раздел.
+    """
     new_section = Section(title=section_data.title)
     db.add(new_section)
     await db.commit()
@@ -99,6 +143,17 @@ async def create_section(section_data: SectionBase, db: AsyncSession = Depends(g
 async def update_section(
     section_id: int, section_update: SectionBase, db: AsyncSession = Depends(get_db)
 ):
+    """
+    Обновить существующий раздел.
+
+    Args:
+        section_id (int): ID раздела.
+        section_update (SectionBase): Данные для обновления раздела.
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        SectionResponse: Обновленный раздел.
+    """
     result = await db.execute(select(Section).where(Section.id == section_id))
     db_update_section = result.scalars().first()
     if not db_update_section:
@@ -115,6 +170,16 @@ async def update_section(
 
 @router.delete("/sections/{section_id}", response_model=SectionResponse)
 async def update_section(section_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Удалить раздел по ID.
+
+    Args:
+        section_id (int): ID раздела.
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        SectionResponse: Удаленный раздел.
+    """
     result = await db.execute(select(Section).where(Section.id == section_id))
     db_delete_section = result.scalars().first()
     if not db_delete_section:
