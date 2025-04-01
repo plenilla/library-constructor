@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     db_echo: bool = True
     
     class Config:
-        env_file = ".env"
+        env_file = "backend/.env"
         env_file_encoding = 'utf-8'
 
 settings = Settings()

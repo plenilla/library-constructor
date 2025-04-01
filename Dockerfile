@@ -14,7 +14,7 @@ COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
 # Настраиваем переменные окружения
-ENV PYTHONPATH=/app/backend
+ENV PYTHONPATH=/app
 ENV STATIC_FILES_PATH=/app/frontend/dist
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
