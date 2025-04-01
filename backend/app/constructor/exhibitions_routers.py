@@ -1,20 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import UploadFile, File, Form
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
 from typing import Optional, List
 import uuid
 
 
-from core.models import (
+from ...core.models import (
     Book,
     get_db,
     Section,
     Content,
     TextArray,
+    Exhibition,
 )
-from app.constructor.exhibitions_schemas import (
+from ..constructor.exhibitions_schemas import (
     BookResponse,
     SectionResponse,
     SectionBase,
@@ -22,10 +24,54 @@ from app.constructor.exhibitions_schemas import (
     TextArrayBase,
     ContentResponse,
     ContentBase,
+    ExhibitionBase,
+    ExhibitionResponse,
 )
 
 
 router = APIRouter()
+
+
+"""Ручки для взаиодействия с выставками"""
+
+
+# Ручка для создания выставки
+@router.get("/exhibitions/", response_model=List[ExhibitionResponse])
+async def get_all_exhibition(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Exhibition))
+    exhibition = result.scalars().all()
+    return exhibition
+
+
+@router.post("/exhibitions/", response_model=ExhibitionResponse)
+async def create_new_exhibition(
+    exhibition_data: ExhibitionBase, db: AsyncSession = Depends(get_db)
+):
+    new_exhibition = Exhibition(**exhibition_data.model_dump())
+    db.add(new_exhibition)
+    await db.commit()
+    await db.refresh(new_exhibition)
+    return new_exhibition
+
+
+@router.delete("/exhibitions/{exhibition_id}")
+async def delete_exhibition(exhibition_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Exhibition)
+        .where(Exhibition.id == exhibition_id)
+        .options(
+            selectinload(Exhibition.sections).selectinload(Section.contents)
+        )
+    )
+    exhibition = result.scalars().first()
+    
+    if not exhibition:
+        raise HTTPException(status_code=404, detail="Exhibition not found")
+    
+    await db.delete(exhibition)
+    await db.commit()
+    
+    return {"message": "Exhibition and all related sections and contents deleted"}
 
 
 """Ручка для взаимодействия с разделами"""
