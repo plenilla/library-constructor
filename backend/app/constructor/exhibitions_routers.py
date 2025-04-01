@@ -201,6 +201,15 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 @router.get("/books/", response_model=List[BookResponse])
 async def get_all_books(db: AsyncSession = Depends(get_db)):
+    """
+    Получить список всех книг.
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        List[BookResponse]: Список всех книг.
+    """
     result = await db.execute(select(Book))
     sections = result.scalars().all()
     return sections
@@ -215,6 +224,19 @@ async def create_book(
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    Создать новую книгу
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        title: Форма названия книги
+        description: Необезательная форма описания книги
+        bo: Форма библиографиеского описания книги
+        image: Форма загрузки изображения для книги
+
+    Returns:
+        BookResponse: Созданная книга
+    """
     # Валидация файла
     if image.content_type not in ALLOWED_MIME_TYPES:
         raise HTTPException(400, "Invalid image format")
@@ -248,7 +270,17 @@ async def create_book(
 
 
 @router.delete("/books/{book_id}")
-async def delete_book(book_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_book(book_id: int, db: AsyncSession = Depends(get_db)):  
+    """
+    Удаление книги по ID
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        book_id(int): ID книги.
+        
+    Returns:
+        dict: Сообщение об успешном удалении.
+    """
     result = await db.execute(select(Book).where(Book.id == book_id))
     book = result.scalars().first()
 
@@ -274,6 +306,15 @@ async def delete_book(book_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/textForcontent/", response_model=List[TextArrayResponse])
 async def get_all_sections(db: AsyncSession = Depends(get_db)):
+    """
+    Получение списка текста контента
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        
+    Returns:
+        List[TextArrayResponse]: Вывод текста контента
+    """
     result = await db.execute(select(TextArray))
     sections = result.scalars().all()
     return sections
@@ -282,6 +323,15 @@ async def get_all_sections(db: AsyncSession = Depends(get_db)):
 # Ручка для создания текстовго поля
 @router.post("/textForcontent/", response_model=TextArrayResponse)
 async def create_text(text: TextArrayBase, db: AsyncSession = Depends(get_db)):
+    """
+    Создания текста для контента 
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        text (TextArrayBase): Данные для создания текст раздела
+    Returns:
+        TextArrayResponse: Созданный текст для контента
+    """
     new_text = TextArray(text_data=text.text_data)
     db.add(new_text)
     await db.commit()
@@ -293,6 +343,16 @@ async def create_text(text: TextArrayBase, db: AsyncSession = Depends(get_db)):
 async def update_text(
     text_id: int, text: TextArrayBase, db: AsyncSession = Depends(get_db)
 ):
+    """
+    Обновление текста контента по ID
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        text (TextArrayBase): Данные для создания текста контента
+        text_id (int): ID текст раздела
+    Returns:
+        TextArrayResponse: Вывод обновленного текста из контента
+    """
     result = await db.execute(select(TextArray).where(TextArray.id == text_id))
     db_text_update = result.scalars().first()
 
@@ -310,6 +370,15 @@ async def update_text(
 # ручка для создания контента, связывающее раздел и текст
 @router.post("/contents/", response_model=ContentResponse)
 async def create_content(content: ContentBase, db: AsyncSession = Depends(get_db)):
+    """
+    Обновление текста контента по ID
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        content (ContentBase): Данные для создания книги
+    Returns:
+        ContentResponse: Вывод обновленного текста контента
+    """
     new_content = Content(
         section_id=content.section_id,
         text_id=content.text_id,
@@ -324,6 +393,14 @@ async def create_content(content: ContentBase, db: AsyncSession = Depends(get_db
 # Получение всех записей контента
 @router.get("/contents/", response_model=List[ContentResponse])
 async def get_contents(db: AsyncSession = Depends(get_db)):
+    """
+    Получить список всех контентов
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+    Returns:
+        List[ContentResponse]: Вывод списка всех контентов
+    """
     result = await db.execute(select(Content))
     contents = result.scalars().all()
     return contents
@@ -333,6 +410,15 @@ async def get_contents(db: AsyncSession = Depends(get_db)):
 async def update_content(
     content_id: int, content_update: ContentBase, db: AsyncSession = Depends(get_db)
 ):
+    """
+    Обновление контента по ID.
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+        content_update (ContentBase): Данные для обновления контента
+    Returns:
+        ContentResponse: Вывод обновленного контента
+    """
     result = await db.execute(select(Content).where(Content.id == content_id))
     db_update_content = result.scalars().first()
 
@@ -347,6 +433,14 @@ async def update_content(
 
 @router.delete("/contents/{content_id}")
 async def delete_content(content_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Удаление контента по ID.
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+    Returns:
+        dict: Сообщение об успешном удалении.
+    """
     content = await db.execute(select(Content).filter(Content.id == content_id))
     content = content.scalars().first()
 
