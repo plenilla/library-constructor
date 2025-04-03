@@ -8,10 +8,94 @@
 </head>
 <body>
     <div id="header-placeholder"></div>
-    <div id="main-content" class="main">
-        <div class="main--container"></div>
-    </div>  
-    <div id="footer-placeholder"></div>
+    <div id="main__content" class="main">
+        <div class="main__container">
+            <div class="exhibition__column">
+                <h1>Электронные книжные выставки</h1>
+                <!-- Список выставок -->
+                <div id="exhibitionsContainer" class="exhibition__main"></div>
+            </div>
+            <div id="footer-placeholder"></div>
+    <script>
+        const API_URL = 'http://localhost:8000/page'
+
+        // Получение всех выставок
+        async function loadExhibitions() {
+            const response = await fetch(`${API_URL}/exhibitions/`)
+            return await response.json()
+        }
+
+        // Отображение выставок
+        async function renderExhibitions() {
+            const container = document.getElementById('exhibitionsContainer')
+            container.innerHTML = ''
+
+            const exhibitions = await loadExhibitions()
+
+            exhibitions.forEach(exhibition => {
+                const div = document.createElement('div')
+                div.className = 'exhibition'
+                div.innerHTML = `
+                    <div class="exhibition__border">
+                        <div class="exhibition__img">
+                            <img src="static/picture/c2e96839-f8d5-48d2-9b64-a8621f59c589.jpg">
+                        </div>
+                        <div class="exhibition__right">
+                            <div class="exhibition__title">
+                                <h3>${exhibition.title}</h3>
+                            </div>
+                            <div class="exhibition__description">
+                                <p>Это описание, это описание</p>
+                            </div>
+                            <div class="exhibition__datacreate">
+                                <p>2025/04/09</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+                const h3 = div.querySelector('.exhibition__title h3');
+                const targer_div = div.querySelector(".exhibition__right");
+
+                targer_div.addEventListener('mouseenter', (event) => {
+                    h3.style.color = "#6680ff"
+                })
+                targer_div.addEventListener('mouseleave', (event) => {
+                    h3.style.color = "#000"
+                })
+                targer_div.addEventListener('click', (event) => {
+                    window.location.href = `/exhibitions/${exhibition.id}`
+                })
+                container.appendChild(div)
+            })
+        }
+
+        // Создание новой выставки
+        async function createExhibition() {
+            const title = document.getElementById('exhibitionTitle').value
+            await fetch(`${API_URL}/exhibitions/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            })
+            renderExhibitions()
+        }
+
+        // Удаление выставки
+        async function deleteExhibition(exhibitionId) {
+            if (confirm('Delete this exhibition and all its content?')) {
+                await fetch(`${API_URL}/exhibitions/${exhibitionId}`, {
+                    method: 'DELETE'
+                })
+                renderExhibitions()
+            }
+        }
+
+        // Инициализация
+        renderExhibitions();
+    </script>
+        </div>
+    </div>
+
     <script src="./static/js/header_footer.js"></script>
 </body>
 </html>

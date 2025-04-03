@@ -20,7 +20,7 @@ justify-content: center;
 .modal-content {
   background-color: #fff;
   position: relative; /* Родитель для абсолютного позиционирования */
-  margin: 100px auto; 
+  margin: 100px auto;
   padding: 40px;
   font-size: 20px;
   display: flex;
@@ -40,7 +40,7 @@ justify-content: center;
 }
 
 .modal-content-input {
-gap: 10px; 
+gap: 10px;
 width: 100%; /* Контейнер занимает всю ширину */
 max-width: 400px; /* Ограничим максимальную ширину */
 display: flex;
@@ -73,7 +73,7 @@ transition: border-color 0.3s, background 0.3s;
 /* Изменение стиля при фокусе */
 .modal-content-input input:focus {
 border-color: #007bff; /* Синий цвет рамки при фокусе */
-background-color: #f8f9fa; 
+background-color: #f8f9fa;
 }
 
 
