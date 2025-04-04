@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Конструктор разделов</title>
+
   <style>
     .fixed-controls {
       position: fixed;
@@ -125,9 +126,25 @@
   <input type="text" id="titleSections" placeholder="Название раздела...">
   <button id="createSections" class="button">Добавить новый раздел</button>
 
-  <ul id="sectionsList" style="list-style-type: none; padding: 0;"></ul>
+  <div id="main__content" class="main">
+        <!-- Контейнер для главной страницы -->
+        <div id="exhibitionsContainer" class="main__container"></div>
 
+        <!-- Контейнер для работы с выставкой -->
+        <div id="exhibitionEditContainer" class="main__container" style="display: none;">
+            <div class="exhibition__column">
+                <h1 id="exhibitionTitle"></h1>
+                <button onclick="window.location.href='/'">← Назад к выставкам</button>
 
+                <div class="section-creator">
+                    <input type="text" id="titleSection" placeholder="Название раздела">
+                    <button id="createSection">Создать раздел</button>
+                </div>
+
+                <ul id="sectionsList" class="sections-container"></ul>
+            </div>
+        </div>
+  </div>
   <!-- Модальное окно для добавления книги -->
   <div id="modalBookAddContent" class="modal">
     <div class="modal-content">
