@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Детали выставки</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style_1.css') }}">
+    <style>
+        /* Дополнительные стили для страницы деталей */
+        .exhibition-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .exhibition-header img {
+            max-width: 300px;
+            display: block;
+            margin: 0 auto;
+        }
+        .section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        .content {
+            margin-left: 20px;
+            padding: 10px 0;
+        }
+        .book {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .book img {
+            max-width: 100px;
+            float: left;
+            margin-right: 10px;
+        }
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+    <div id="header-placeholder"></div>
+    <div id="main__content" class="main">
+        <div id="exhibitionDetail"></div>
+    </div>
+    <div id="footer-placeholder"></div>
+
+    <script>
+        const API_URL = 'http://localhost:8000/page';
+
+        // Извлекаем ID выставки из URL"
+        function getExhibitionIdFromUrl() {
+            const parts = window.location.pathname.split('/');
+            return parts[parts.length - 1] || parts[parts.length - 2];
+        }
+
+        // Запрос деталей выставки с серверного API
+        async function loadExhibitionDetail() {
+            const exhibitionId = getExhibitionIdFromUrl();
+            const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}`);
+            return await response.json();
+        }
+
+        // Отображаем детали выставки и список разделов
+        async function renderExhibitionDetail() {
+            const exhibition = await loadExhibitionDetail();
+            const container = document.getElementById('exhibitionDetail');
+
+            // Блок информации о выставке
+            container.innerHTML = `
+                <div class="exhibition-header">
+                    <h1>${exhibition.title}</h1>
+                    <img src="${exhibition.image}" alt="${exhibition.title}">
+                    <p>${exhibition.description || ''}</p>
+                </div>
+            `;
+
+            // Если есть разделы, выводим их
+            if (exhibition.sections && exhibition.sections.length > 0) {
+                exhibition.sections.forEach(section => {
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.className = 'section';
+                    sectionDiv.innerHTML = `<h2>${section.title}</h2>`;
+
+                    if (section.contents && section.contents.length > 0) {
+                        section.contents.forEach(content => {
+                            const contentDiv = document.createElement('div');
+                            contentDiv.className = 'content';
+
+                            // Если в контенте есть текст (TextArray)
+                            if (content.text_data && content.text_data.text_data) {
+                                contentDiv.innerHTML = `<p>${content.text_data.text_data}</p>`;
+                            }
+                            // Если есть книга
+                            else if (content.books) {
+                                contentDiv.classList.add('book', 'clearfix');
+                                contentDiv.innerHTML = `
+                                    <img src="${content.books.image}" alt="${content.books.title}">
+                                    <div>
+                                        <h3>${content.books.title}</h3>
+                                        <p>${content.books.description || ''}</p>
+                                    </div>
+                                `;
+                            }
+                            sectionDiv.appendChild(contentDiv);
+                        });
+                    } else {
+                        sectionDiv.innerHTML += '<p>Нет содержимого</p>';
+                    }
+                    container.appendChild(sectionDiv);
+                });
+            } else {
+                container.innerHTML += '<p>Нет разделов для этой выставки.</p>';
+            }
+        }
+
+        renderExhibitionDetail();
+    </script>
+    <script src="./static/js/header_footer.js"></script>
+</body>
+</html>

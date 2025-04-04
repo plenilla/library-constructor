@@ -19,7 +19,7 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "..", "..", "fronte
 
 @router.get("/", response_class=HTMLResponse)
 async def root(request: Request, session: AsyncSession = Depends(get_db)):
-    """ Это главная страница сайта """
+    """Это главная страница сайта"""
     try:
         await session.execute(text("SELECT 1"))
 
@@ -44,6 +44,17 @@ async def root(request: Request, session: AsyncSession = Depends(get_db)):
 async def item_page(request: Request):
     """Это страница со списком всех выставок"""
     return templates.TemplateResponse("exhibitions.html", {"request": request})
+
+
+@router.get("/exhibition_detail/{exhibition_id}", response_class=HTMLResponse)
+async def item_page(request: Request, exhibition_id: int):
+    """
+    Страница деталей выставки.
+    Принимает exhibition_id как GET-параметр.
+    """
+    return templates.TemplateResponse(
+        "exhibition_detail.html", {"request": request, "exhibition_id": exhibition_id}
+    )
 
 
 @router.get("/user-regit/", response_class=HTMLResponse)

@@ -1,4 +1,12 @@
-from sqlalchemy import ForeignKey, Text, Boolean, Column, Integer, DateTime
+from sqlalchemy import (
+    ForeignKey,
+    Text,
+    Boolean,
+    Column,
+    Integer,
+    DateTime,
+    CheckConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -17,7 +25,7 @@ class Exhibition(Base):
         back_populates="exhibitions",
         lazy="selectin",
         cascade="all, delete-orphan",
-        passive_deletes=True
+        passive_deletes=True,
     )
 
 
@@ -36,7 +44,7 @@ class Section(Base):
         back_populates="sections",
         lazy="selectin",
         cascade="all, delete-orphan",
-        passive_deletes=True
+        passive_deletes=True,
     )
 
 
@@ -53,28 +61,34 @@ class Content(Base):
     section_id = Column(
         Integer, ForeignKey("sections.id", ondelete="CASCADE"), nullable=False
     )
-    sections = relationship(
-        "Section",
-        back_populates="contents",
-        lazy="selectin",
-    )
-
     books_id = Column(
         Integer,
         ForeignKey("books.id"),
         nullable=True,
     )
-    books = relationship("Book", back_populates="contents", lazy="selectin")
-
     text_id = Column(
         Integer,
-        ForeignKey("textarrays.id"),  
+        ForeignKey("textarrays.id"),
         nullable=True,
+    )
+
+    books = relationship("Book", back_populates="contents", lazy="selectin")
+    sections = relationship(
+        "Section",
+        back_populates="contents",
+        lazy="selectin",
     )
     text_data = relationship(
         "TextArray",
         back_populates="contents_text",
         lazy="selectin",
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "(books_id IS NOT NULL AND text_id IS NULL) OR "
+            "(books_id IS NULL AND text_id IS NOT NULL)",
+            name="check_content_xor",
+        ),
     )
 
 
