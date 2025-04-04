@@ -46,21 +46,24 @@ async def login(
 
     # Перенаправляем пользователя в зависимости от роли
     redirect_map = {
-        UserRole.READER: "/reader_home/",
+        UserRole.READER: "/",
         UserRole.LIBRARIAN: "/librarian_home/",
         UserRole.ADMIN: "/admin_dashboard/",
     }
 
     return RedirectResponse(url=redirect_map.get(user.role, "/"), status_code=302)
 
-    """if user.role == "READER":
-        return RedirectResponse(url="/reader_home", status_code=302)
-    elif user.role == "LIBRARIAN":
-        return RedirectResponse(url="/librarian_home", status_code=302)
-    else:
-        # Если роль не распознана, можно перенаправить на главную страницу
-        return RedirectResponse(url="/", status_code=302)"""
+@router.get("/check_auth")
+async def check_auth(request: Request):
+    """
+        Проверка авторизации аккаунта
 
+        Args:
+            request (Request): Запрос на сессию для проверки
+        Returns:
+            HTMLResponse: Вывод авторизован ли пользователь
+        """
+    return {"is_authenticated": "user_id" in request.session}
 
 @router.get("/logout", response_class=HTMLResponse)
 async def logout(request: Request):
