@@ -3,33 +3,61 @@
 
 <head>
     <title>Exhibition Constructor</title>
-    <style>
-        .exhibition {
-            padding: 10px;
-            margin: 10px;
-            border: 1px solid #ccc;
-        }
-
-        .section {
-            margin-left: 20px;
-            padding: 10px;
-            border: 1px solid #eee;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style_1.css') }}">
 </head>
 
 <body>
-    <h1>Exhibition Manager</h1>
-
-    <!-- Создание новой выставки -->
+    <!-- Список выставок -->
+    <div id="header-placeholder"></div>
+    <div id="main__content" class="main">
+        <!-- Создание новой выставки -->
+        <h1 style="color:black; padding: 20px">Конструктор выставки</h1>
     <div>
-        <input type="text" id="exhibitionTitle" placeholder="Exhibition title">
+        <input type="text"
+               id="exhibitionTitle"
+               placeholder="Exhibition title">
+
+        <input type="text"
+               id="exhibitionDescription"
+               placeholder="Exhibition description">
+
+        <label for="exhibitionImg">Выберите изображение:</label>
+            <input type="file" id="exhibitionImg">
+
+        <label>
+            <input type="checkbox"
+                   id="exhibitionPublish">
+            Publish Exhibition
+        </label>
         <button onclick="createExhibition()">Create Exhibition</button>
     </div>
-
-    <!-- Список выставок -->
-    <div id="exhibitionsContainer"></div>
-
+        <div class="main__container">
+            <div class="exhibition__column">
+                <h1>Электронные книжные выставки</h1>
+                <!-- Список выставок -->
+                <div id="exhibitionsContainer" class="exhibition__main"></div>
+            </div>
+            <div id="footer-placeholder"></div>
+        </div>
+    </div>
+    <!-- Модальное окно для редактирования -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Редактирование выставки</h2>
+            <input type="hidden" id="editExhibitionId">
+            <input type="text" id="editExhibitionTitle" placeholder="Название">
+            <input type="text" id="editExhibitionDescription" placeholder="Описание">
+            <label for="editExhibitionImg">Выберите изображение:</label>
+            <input type="file" id="editExhibitionImg">
+            <label>
+                <input type="checkbox" id="editExhibitionPublish">
+                Опубликовать
+            </label>
+            <button onclick="saveExhibition()">Сохранить</button>
+            <button onclick="closeModal()">Закрыть</button>
+        </div>
+    </div>
     <script>
         const API_URL = 'http://localhost:8000/page'
 
@@ -50,29 +78,137 @@
                 const div = document.createElement('div')
                 div.className = 'exhibition'
                 div.innerHTML = `
-                    <h3>${exhibition.title}</h3>
-                    <button class="delete-btn" onclick="deleteExhibition(${exhibition.id})">Delete</button>
-                    <div class="sections"></div>
+                    <div class="exhibition__border">
+                        <div class="exhibition__img">
+                            <img src="${exhibition.image}">
+                        </div>
+                        <div class="exhibition__right">
+                            <div class="exhibition__title">
+                                <h3>${exhibition.title}</h3>
+                            </div>
+                            <div class="exhibition__description">
+                                <p>${exhibition.description || ''}</p>
+                            </div>
+                            <div class="exhibition__datacreate">
+                                <p>${
+                                    exhibition.is_published
+                                        ? `Опубликована: ${exhibition.published_at}`
+                                        : `Создана: ${exhibition.created_at}`
+                                }</p>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="openEditModal(${exhibition.id})">Изменить данные выставки</button>
+                        <button class="btn" onclick="deleteExhibition(${exhibition.id})">Delete</button>
+                    </div>
                 `
+                const h3 = div.querySelector('.exhibition__title h3');
+                const targer_div = div.querySelector(".exhibition__right");
 
-                div.addEventListener('click', (e) => {
-                    if (!e.target.classList.contains('delete-btn')) {
+                targer_div.addEventListener('mouseenter', (event) => {
+                    h3.style.color = "#6680ff"
+                })
+                targer_div.addEventListener('mouseleave', (event) => {
+                    h3.style.color = "#000"
+                })
+                targer_div.addEventListener('click', (event) => {
+                    if (!event.target.classList.contains('btn')) {
                         window.location.href = `/exhibitions/${exhibition.id}`
                     }
                 })
                 container.appendChild(div)
             })
         }
-
         // Создание новой выставки
         async function createExhibition() {
-            const title = document.getElementById('exhibitionTitle').value
-            await fetch(`${API_URL}/exhibitions/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title })
-            })
-            renderExhibitions()
+            const title = document.getElementById('exhibitionTitle').value;
+            const description = document.getElementById('exhibitionDescription').value;
+            const imageFile = document.getElementById('exhibitionImg').files[0];
+            const is_published = document.getElementById('exhibitionPublish').checked;
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('is_published', is_published ? 'true' : 'false');
+            formData.append('image', imageFile, imageFile.name);
+
+            try {
+                const response = await fetch(`${API_URL}/exhibitions/`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!response.ok) {
+                    throw new Error('Ошибка при создании выставки');
+                }
+                renderExhibitions();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Произошла ошибка: ' + error.message);
+            }
+        }
+
+        async function openEditModal(exhibitionId) {
+            try {
+                // Запрашиваем данные выставки
+                const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}`);
+                if (!response.ok) {
+                    throw new Error("Ошибка при загрузке данных");
+                }
+                const exhibition = await response.json();
+
+                // Проверьте данные в консоли
+                console.log("Данные выставки:", exhibition);
+
+                // Заполняем поля формы
+                document.getElementById('editExhibitionId').value = exhibitionId;
+                document.getElementById('editExhibitionTitle').value = exhibition.title || "";
+                document.getElementById('editExhibitionDescription').value = exhibition.description || "";
+                document.getElementById('editExhibitionPublish').checked = exhibition.is_published || false;
+
+                // Показываем модальное окно
+                document.getElementById('editModal').style.display = 'flex';
+            } catch (error) {
+                console.error("Ошибка:", error);
+                alert("Не удалось загрузить данные: " + error.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        async function saveExhibition() {
+            const exhibitionId = document.getElementById('editExhibitionId').value;
+
+            const title = document.getElementById('editExhibitionTitle').value;
+            const description = document.getElementById('editExhibitionDescription').value;
+            const imageInput = document.getElementById('editExhibitionImg');
+            const is_published = document.getElementById('editExhibitionPublish').checked;
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('is_published', is_published);
+
+            if (imageInput.files.length > 0) {
+                formData.append('image', imageInput.files[0]);
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}`, {
+                    method: 'PUT',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка при обновлении выставки');
+                }
+
+                closeModal();
+                renderExhibitions();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Произошла ошибка: ' + error.message);
+            }
         }
 
         // Удаление выставки
@@ -88,6 +224,7 @@
         // Инициализация
         renderExhibitions();
     </script>
+    <script src="../static/js/header_footer.js"></script>
 </body>
 
 </html>

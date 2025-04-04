@@ -1,13 +1,15 @@
+from certifi import where
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import UploadFile, File, Form
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from pathlib import Path
 from typing import Optional, List
 import uuid
+from datetime import datetime, timezone
+from starlette.status import HTTP_404_NOT_FOUND
 
-
+from .img import MEDIA_DIR, ALLOWED_MIME_TYPES, MAX_FILE_SIZE
 from ...core.models import (
     Book,
     get_db,
@@ -36,7 +38,9 @@ router = APIRouter()
 
 
 @router.get("/exhibitions/", response_model=List[ExhibitionResponse])
-async def get_all_exhibition(db: AsyncSession = Depends(get_db)):
+async def get_all_exhibition(
+        published: Optional[bool] = None,
+        db: AsyncSession = Depends(get_db)):
     """
     Получить список всех выставок.
 
@@ -46,14 +50,43 @@ async def get_all_exhibition(db: AsyncSession = Depends(get_db)):
     Returns:
         List[ExhibitionResponse]: Список всех выставок.
     """
-    result = await db.execute(select(Exhibition))
-    exhibition = result.scalars().all()
+    query = select(Exhibition)
+    if published is True:
+        query = query.where(Exhibition.is_published == True)
+    result = await db.execute(query)
+    exhibitions = result.scalars().all()
+    return exhibitions
+
+
+@router.get("/exhibitions/{exhibition_id}", response_model=ExhibitionResponse)
+async def get_exhibition(
+    exhibition_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Получить список всех выставок.
+
+    Args:
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        List[ExhibitionResponse]: Список всех выставок.
+    """
+    result = await db.execute(
+        select(Exhibition).where(Exhibition.id == exhibition_id)
+    )
+    exhibition = result.scalar_one_or_none()
+
+    if not exhibition:
+        raise HTTPException(status_code=404, detail="Выставка не найдена")
+
     return exhibition
 
 
 @router.post("/exhibitions/", response_model=ExhibitionResponse)
 async def create_new_exhibition(
-    exhibition_data: ExhibitionBase, db: AsyncSession = Depends(get_db)
+    exhibition_data: ExhibitionBase = Depends(ExhibitionBase.as_form),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Создать новую выставку.
@@ -65,11 +98,88 @@ async def create_new_exhibition(
     Returns:
         ExhibitionResponse: Созданная выставка.
     """
-    new_exhibition = Exhibition(**exhibition_data.model_dump())
-    db.add(new_exhibition)
+    file_ext = exhibition_data.image.filename.split('.')[-1]
+    filename = f"{uuid.uuid4()}.{file_ext}"
+    file_path = MEDIA_DIR / filename
+
+    try:
+        contents = await exhibition_data.image.read()
+        with open(file_path, 'wb') as f:
+            f.write(contents)
+    except Exception as e:
+        raise HTTPException(500, f"File upload failed: {e}")
+
+    if exhibition_data.is_published:
+        published_at = datetime.now(timezone.utc)
+    else:
+        published_at = None
+
+    db_exhibition = Exhibition(
+        title=exhibition_data.title,
+        description=exhibition_data.description,
+        is_published=exhibition_data.is_published,
+        image=f"/static/picture/{filename}",
+        created_at = datetime.now(timezone.utc),
+        published_at = published_at
+    )
+    db.add(db_exhibition)
     await db.commit()
-    await db.refresh(new_exhibition)
-    return new_exhibition
+    await db.refresh(db_exhibition)
+    return db_exhibition
+
+@router.put("/exhibitions/{exhibition_id}", response_model=ExhibitionResponse)
+async def update_exhibition(
+    exhibition_id: int,
+    exhibition_data: ExhibitionBase = Depends(ExhibitionBase.as_form),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Обновить существующую выставку.
+
+    Args:
+        exhibition_id (int): Идентификатор выставки для обновления.
+        exhibition_data (ExhibitionBase): Данные для обновления выставки.
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        ExhibitionResponse: Обновлённая выставка.
+    """
+    # Получаем существующую выставку из базы данных
+    result = await db.execute(select(Exhibition).where(Exhibition.id == exhibition_id))
+    db_exhibition = result.scalar_one_or_none()
+    if not db_exhibition:
+        raise HTTPException(status_code=404, detail="Выставка не найдена")
+
+    # Если передан новый файл изображения, сохраняем его и обновляем путь
+    if exhibition_data.image:
+        try:
+            file_ext = exhibition_data.image.filename.split('.')[-1]
+            filename = f"{uuid.uuid4()}.{file_ext}"
+            file_path = MEDIA_DIR / filename
+
+            contents = await exhibition_data.image.read()
+            with open(file_path, 'wb') as f:
+                f.write(contents)
+
+            db_exhibition.image = f"/static/picture/{filename}"
+        except Exception as e:
+            raise HTTPException(500, f"Ошибка загрузки файла: {e}")
+
+    # Обновляем текстовые поля и состояние публикации
+    db_exhibition.title = exhibition_data.title
+    db_exhibition.description = exhibition_data.description
+    db_exhibition.is_published = exhibition_data.is_published
+
+    # Обновляем published_at в зависимости от статуса публикации
+    if exhibition_data.is_published and not db_exhibition.published_at:
+        db_exhibition.published_at = datetime.now(timezone.utc)
+    elif not exhibition_data.is_published:
+        db_exhibition.published_at = None
+
+    db.add(db_exhibition)
+    await db.commit()
+    await db.refresh(db_exhibition)
+    return db_exhibition
 
 
 @router.delete("/exhibitions/{exhibition_id}")
@@ -103,35 +213,40 @@ async def delete_exhibition(exhibition_id: int, db: AsyncSession = Depends(get_d
 """Ручки для взаимодействия с разделами"""
 
 
-@router.get("/sections/", response_model=List[SectionResponse])
-async def get_all_sections(db: AsyncSession = Depends(get_db)):
+@router.get("/exhibitions/{exhibition_id}/sections/", response_model=List[SectionResponse])
+async def get_all_sections(exhibition_id: int, db: AsyncSession = Depends(get_db)):
     """
     Получить список всех разделов.
 
     Args:
         db (AsyncSession): Сессия базы данных.
-
+        exhibition_id (int): ID выставки
     Returns:
         List[SectionResponse]: Список всех разделов.
     """
-    result = await db.execute(select(Section))
+    result = await db.execute(select(Section).where(Section.exhibition_id == exhibition_id))
     sections = result.scalars().all()
     return sections
 
 
-@router.post("/sections/", response_model=SectionResponse)
-async def create_section(section_data: SectionBase, db: AsyncSession = Depends(get_db)):
+@router.post("/exhibitions/{exhibition_id}/sections/", response_model=SectionResponse)
+async def create_section(section_data: SectionBase, exhibition_id: int, db: AsyncSession = Depends(get_db)):
     """
     Создать новый раздел.
 
     Args:
         section_data (SectionBase): Данные для создания раздела.
         db (AsyncSession): Сессия базы данных.
+        exhibition_id (int): ID выставки
 
     Returns:
         SectionResponse: Созданный раздел.
     """
-    new_section = Section(title=section_data.title)
+    exhibition = await db.get(Exhibition, exhibition_id)
+    if not exhibition:
+        raise HTTPException(status_code=404, detail="Exhibition not found")
+
+    new_section = Section(title=section_data.title, exhibition_id=exhibition_id)
     db.add(new_section)
     await db.commit()
     await db.refresh(new_section)
@@ -139,9 +254,9 @@ async def create_section(section_data: SectionBase, db: AsyncSession = Depends(g
     return new_section
 
 
-@router.put("/sections/{section_id}", response_model=SectionResponse)
+@router.put("/exhibitions/{exhibition_id}/sections/{section_id}", response_model=SectionResponse)
 async def update_section(
-    section_id: int, section_update: SectionBase, db: AsyncSession = Depends(get_db)
+    section_id: int, exhibition_id: int, section_update: SectionBase, db: AsyncSession = Depends(get_db)
 ):
     """
     Обновить существующий раздел.
@@ -150,14 +265,18 @@ async def update_section(
         section_id (int): ID раздела.
         section_update (SectionBase): Данные для обновления раздела.
         db (AsyncSession): Сессия базы данных.
+        exhibition_id (int): ID выставки
 
     Returns:
         SectionResponse: Обновленный раздел.
     """
-    result = await db.execute(select(Section).where(Section.id == section_id))
+    result = await db.execute(select(Section).
+                              where(Section.id == section_id).
+                              where(Section.exhibition_id == exhibition_id))
+
     db_update_section = result.scalars().first()
     if not db_update_section:
-        raise HTTPException(status_code=404, detail="section not found")
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="section not found")
 
     # Обновляем атрибуты модели вместо замены объекта
     for field, value in section_update.model_dump().items():
@@ -168,22 +287,27 @@ async def update_section(
     return db_update_section
 
 
-@router.delete("/sections/{section_id}", response_model=SectionResponse)
-async def update_section(section_id: int, db: AsyncSession = Depends(get_db)):
+@router.delete("/exhibitions/{exhibition_id}/sections/{section_id}", response_model=SectionResponse)
+async def update_section(section_id: int, exhibition_id: int, db: AsyncSession = Depends(get_db)):
     """
     Удалить раздел по ID.
 
     Args:
         section_id (int): ID раздела.
         db (AsyncSession): Сессия базы данных.
+        exhibition_id (int): ID выставки
 
     Returns:
         SectionResponse: Удаленный раздел.
     """
-    result = await db.execute(select(Section).where(Section.id == section_id))
+    result = await db.execute(select(Section).
+                              where(Section.id == section_id).
+                              where(Section.exhibition_id == exhibition_id))
+
     db_delete_section = result.scalars().first()
+
     if not db_delete_section:
-        raise HTTPException(status_code=404, detail="section not found")
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="section not found")
 
     await db.delete(db_delete_section)
     await db.commit()
@@ -191,12 +315,6 @@ async def update_section(section_id: int, db: AsyncSession = Depends(get_db)):
 
 
 """Ручка для взаимодействия с книгой и его обложкой"""
-
-MEDIA_DIR = Path("../frontend/static/picture").resolve()
-MEDIA_DIR.mkdir(parents=True, exist_ok=True)
-
-ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/gif"}
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 
 @router.get("/books/", response_model=List[BookResponse])
