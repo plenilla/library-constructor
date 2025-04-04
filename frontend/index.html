@@ -21,7 +21,7 @@
 
         // Получение всех выставок
         async function loadExhibitions() {
-            const response = await fetch(`${API_URL}/exhibitions/`)
+            const response = await fetch(`${API_URL}/exhibitions/?published=true`)
             return await response.json()
         }
 
@@ -38,17 +38,17 @@
                 div.innerHTML = `
                     <div class="exhibition__border">
                         <div class="exhibition__img">
-                            <img src="static/picture/c2e96839-f8d5-48d2-9b64-a8621f59c589.jpg">
+                            <img src="${exhibition.image}">
                         </div>
                         <div class="exhibition__right">
                             <div class="exhibition__title">
                                 <h3>${exhibition.title}</h3>
                             </div>
                             <div class="exhibition__description">
-                                <p>Это описание, это описание</p>
+                                <p>${exhibition.description || ''}</p>
                             </div>
                             <div class="exhibition__datacreate">
-                                <p>2025/04/09</p>
+                                <p>${exhibition.published_at}</p>
                             </div>
                         </div>
                     </div>
