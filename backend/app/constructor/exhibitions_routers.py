@@ -28,6 +28,7 @@ from ..constructor.exhibitions_schemas import (
     ContentBase,
     ExhibitionBase,
     ExhibitionResponse,
+    ContentUpdate,
 )
 
 
@@ -39,8 +40,8 @@ router = APIRouter()
 
 @router.get("/exhibitions/", response_model=List[ExhibitionResponse])
 async def get_all_exhibition(
-        published: Optional[bool] = None,
-        db: AsyncSession = Depends(get_db)):
+    published: Optional[bool] = None, db: AsyncSession = Depends(get_db)
+):
     """
     Получить список всех выставок.
 
@@ -59,10 +60,7 @@ async def get_all_exhibition(
 
 
 @router.get("/exhibitions/{exhibition_id}", response_model=ExhibitionResponse)
-async def get_exhibition(
-    exhibition_id: int,
-    db: AsyncSession = Depends(get_db)
-):
+async def get_exhibition(exhibition_id: int, db: AsyncSession = Depends(get_db)):
     """
     Получить список всех выставок.
 
@@ -72,9 +70,7 @@ async def get_exhibition(
     Returns:
         List[ExhibitionResponse]: Список всех выставок.
     """
-    result = await db.execute(
-        select(Exhibition).where(Exhibition.id == exhibition_id)
-    )
+    result = await db.execute(select(Exhibition).where(Exhibition.id == exhibition_id))
     exhibition = result.scalar_one_or_none()
 
     if not exhibition:
@@ -86,7 +82,7 @@ async def get_exhibition(
 @router.post("/exhibitions/", response_model=ExhibitionResponse)
 async def create_new_exhibition(
     exhibition_data: ExhibitionBase = Depends(ExhibitionBase.as_form),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Создать новую выставку.
@@ -98,13 +94,13 @@ async def create_new_exhibition(
     Returns:
         ExhibitionResponse: Созданная выставка.
     """
-    file_ext = exhibition_data.image.filename.split('.')[-1]
+    file_ext = exhibition_data.image.filename.split(".")[-1]
     filename = f"{uuid.uuid4()}.{file_ext}"
     file_path = MEDIA_DIR / filename
 
     try:
         contents = await exhibition_data.image.read()
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             f.write(contents)
     except Exception as e:
         raise HTTPException(500, f"File upload failed: {e}")
@@ -119,19 +115,20 @@ async def create_new_exhibition(
         description=exhibition_data.description,
         is_published=exhibition_data.is_published,
         image=f"/static/picture/{filename}",
-        created_at = datetime.now(timezone.utc),
-        published_at = published_at
+        created_at=datetime.now(timezone.utc),
+        published_at=published_at,
     )
     db.add(db_exhibition)
     await db.commit()
     await db.refresh(db_exhibition)
     return db_exhibition
 
+
 @router.put("/exhibitions/{exhibition_id}", response_model=ExhibitionResponse)
 async def update_exhibition(
     exhibition_id: int,
     exhibition_data: ExhibitionBase = Depends(ExhibitionBase.as_form),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Обновить существующую выставку.
@@ -153,12 +150,12 @@ async def update_exhibition(
     # Если передан новый файл изображения, сохраняем его и обновляем путь
     if exhibition_data.image:
         try:
-            file_ext = exhibition_data.image.filename.split('.')[-1]
+            file_ext = exhibition_data.image.filename.split(".")[-1]
             filename = f"{uuid.uuid4()}.{file_ext}"
             file_path = MEDIA_DIR / filename
 
             contents = await exhibition_data.image.read()
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 f.write(contents)
 
             db_exhibition.image = f"/static/picture/{filename}"
@@ -213,7 +210,9 @@ async def delete_exhibition(exhibition_id: int, db: AsyncSession = Depends(get_d
 """Ручки для взаимодействия с разделами"""
 
 
-@router.get("/exhibitions/{exhibition_id}/sections/", response_model=List[SectionResponse])
+@router.get(
+    "/exhibitions/{exhibition_id}/sections/", response_model=List[SectionResponse]
+)
 async def get_all_sections(exhibition_id: int, db: AsyncSession = Depends(get_db)):
     """
     Получить список всех разделов.
@@ -224,13 +223,17 @@ async def get_all_sections(exhibition_id: int, db: AsyncSession = Depends(get_db
     Returns:
         List[SectionResponse]: Список всех разделов.
     """
-    result = await db.execute(select(Section).where(Section.exhibition_id == exhibition_id))
+    result = await db.execute(
+        select(Section).where(Section.exhibition_id == exhibition_id)
+    )
     sections = result.scalars().all()
     return sections
 
 
 @router.post("/exhibitions/{exhibition_id}/sections/", response_model=SectionResponse)
-async def create_section(section_data: SectionBase, exhibition_id: int, db: AsyncSession = Depends(get_db)):
+async def create_section(
+    section_data: SectionBase, exhibition_id: int, db: AsyncSession = Depends(get_db)
+):
     """
     Создать новый раздел.
 
@@ -254,9 +257,14 @@ async def create_section(section_data: SectionBase, exhibition_id: int, db: Asyn
     return new_section
 
 
-@router.put("/exhibitions/{exhibition_id}/sections/{section_id}", response_model=SectionResponse)
+@router.put(
+    "/exhibitions/{exhibition_id}/sections/{section_id}", response_model=SectionResponse
+)
 async def update_section(
-    section_id: int, exhibition_id: int, section_update: SectionBase, db: AsyncSession = Depends(get_db)
+    section_id: int,
+    exhibition_id: int,
+    section_update: SectionBase,
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Обновить существующий раздел.
@@ -270,9 +278,11 @@ async def update_section(
     Returns:
         SectionResponse: Обновленный раздел.
     """
-    result = await db.execute(select(Section).
-                              where(Section.id == section_id).
-                              where(Section.exhibition_id == exhibition_id))
+    result = await db.execute(
+        select(Section)
+        .where(Section.id == section_id)
+        .where(Section.exhibition_id == exhibition_id)
+    )
 
     db_update_section = result.scalars().first()
     if not db_update_section:
@@ -287,8 +297,12 @@ async def update_section(
     return db_update_section
 
 
-@router.delete("/exhibitions/{exhibition_id}/sections/{section_id}", response_model=SectionResponse)
-async def update_section(section_id: int, exhibition_id: int, db: AsyncSession = Depends(get_db)):
+@router.delete(
+    "/exhibitions/{exhibition_id}/sections/{section_id}", response_model=SectionResponse
+)
+async def update_section(
+    section_id: int, exhibition_id: int, db: AsyncSession = Depends(get_db)
+):
     """
     Удалить раздел по ID.
 
@@ -300,9 +314,11 @@ async def update_section(section_id: int, exhibition_id: int, db: AsyncSession =
     Returns:
         SectionResponse: Удаленный раздел.
     """
-    result = await db.execute(select(Section).
-                              where(Section.id == section_id).
-                              where(Section.exhibition_id == exhibition_id))
+    result = await db.execute(
+        select(Section)
+        .where(Section.id == section_id)
+        .where(Section.exhibition_id == exhibition_id)
+    )
 
     db_delete_section = result.scalars().first()
 
@@ -388,14 +404,14 @@ async def create_book(
 
 
 @router.delete("/books/{book_id}")
-async def delete_book(book_id: int, db: AsyncSession = Depends(get_db)):  
+async def delete_book(book_id: int, db: AsyncSession = Depends(get_db)):
     """
     Удаление книги по ID
 
     Args:
         db (AsyncSession): Сессия базы данных.
         book_id(int): ID книги.
-        
+
     Returns:
         dict: Сообщение об успешном удалении.
     """
@@ -429,7 +445,7 @@ async def get_all_sections(db: AsyncSession = Depends(get_db)):
 
     Args:
         db (AsyncSession): Сессия базы данных.
-        
+
     Returns:
         List[TextArrayResponse]: Вывод текста контента
     """
@@ -442,7 +458,7 @@ async def get_all_sections(db: AsyncSession = Depends(get_db)):
 @router.post("/textForcontent/", response_model=TextArrayResponse)
 async def create_text(text: TextArrayBase, db: AsyncSession = Depends(get_db)):
     """
-    Создания текста для контента 
+    Создания текста для контента
 
     Args:
         db (AsyncSession): Сессия базы данных.
@@ -524,29 +540,66 @@ async def get_contents(db: AsyncSession = Depends(get_db)):
     return contents
 
 
-@router.put("/contents/{contents_id}", response_model=ContentResponse)
+@router.put("/contents/{content_id}", response_model=ContentResponse)
 async def update_content(
-    content_id: int, content_update: ContentBase, db: AsyncSession = Depends(get_db)
+    content_id: int,
+    content_update: ContentUpdate,
+    db: AsyncSession = Depends(get_db),
 ):
     """
-    Обновление контента по ID.
+    Обновление содержимого (текста или книги) по ID.
 
     Args:
+        content_id (int): ID содержимого.
+        content_update (ContentUpdate): Обновлённые данные (тип и поля).
         db (AsyncSession): Сессия базы данных.
-        content_update (ContentBase): Данные для обновления контента
+
     Returns:
-        ContentResponse: Вывод обновленного контента
+        Обновлённый Content с вложенными объектами.
     """
     result = await db.execute(select(Content).where(Content.id == content_id))
-    db_update_content = result.scalars().first()
+    content = result.scalars().first()
 
-    # Обновляем атрибуты модели вместо замены объекта
-    for field, value in content_update.model_dump().items():
-        setattr(db_update_content, field, value)
+    if not content:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Content not found")
+
+    if content_update.type == "text":
+        # Обновляем или создаём TextArray
+        if content.text_id:
+            result = await db.execute(
+                select(TextArray).where(TextArray.id == content.text_id)
+            )
+            text = result.scalars().first()
+            text.text_data = content_update.text_data
+        else:
+            new_text = TextArray(text_data=content_update.text_data)
+            db.add(new_text)
+            await db.flush()  # Получаем ID
+            content.text_id = new_text.id
+            content.books_id = None
+
+    elif content_update.type == "book":
+        if content.books_id:
+            result = await db.execute(select(Book).where(Book.id == content.books_id))
+            book = result.scalars().first()
+            book.title = content_update.title
+            book.description = content_update.description
+            book.image = content_update.image
+        else:
+            new_book = Book(
+                title=content_update.title,
+                description=content_update.description,
+                image=content_update.image,
+            )
+            db.add(new_book)
+            await db.flush()
+            content.books_id = new_book.id
+            content.text_id = None
 
     await db.commit()
-    await db.refresh(db_update_content)
-    return db_update_content
+    await db.refresh(content)
+
+    return content
 
 
 @router.delete("/contents/{content_id}")

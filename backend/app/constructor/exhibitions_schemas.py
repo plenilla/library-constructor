@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, List
+from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict, field_validator
 from fastapi import UploadFile, Form, File
 from datetime import datetime
@@ -13,23 +13,23 @@ class ExhibitionBase(BaseModel):
     description: Optional[str] = None
     image: Optional[UploadFile] = None
 
-    @field_validator('image')
+    @field_validator("image")
     def validate_image(cls, v: UploadFile):
         if v is None:
             return v
         if v.content_type not in ALLOWED_MIME_TYPES:
-            raise ValueError('Invalid image format')
+            raise ValueError("Invalid image format")
         if v.size > MAX_FILE_SIZE:
-            raise ValueError('Image too large')
+            raise ValueError("Image too large")
         return v
 
     @classmethod
     def as_form(
-            cls,
-            title: str = Form(...),
-            description: Optional[str] = Form(None),
-            is_published: bool = Form(False),
-            image: Optional[UploadFile] = File(None),
+        cls,
+        title: str = Form(...),
+        description: Optional[str] = Form(None),
+        is_published: bool = Form(False),
+        image: Optional[UploadFile] = File(None),
     ):
         return cls(
             title=title,
@@ -37,7 +37,6 @@ class ExhibitionBase(BaseModel):
             is_published=is_published,
             image=image,
         )
-
 
 
 class ExhibitionResponse(BaseModel):
@@ -95,6 +94,16 @@ class ContentResponse(ContentBase):
     text_data: Optional[TextArrayResponse] = None
     books: Optional[BookResponse] = None
     model_config = ConfigDict(from_attributes=True)
+
+
+class ContentUpdate(BaseModel):
+    type: Literal["text", "book"]
+    # Для "text"
+    text_data: Optional[str] = None
+    # Для "book"
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image: Optional[str] = None
 
 
 # Перестраиваем модели для разрешения циклических зависимостей
