@@ -1,13 +1,65 @@
 
-let currentSectionIdForBook = null; 
+let currentSectionIdForBook = null;
+// Получаем ID выставки из URL
+const getExhibitionId = () => {
+    const match = window.location.pathname.match(/\/exhibitions\/(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+};
+
+// Основная функция инициализации
+async function initPage() {
+    const exhibitionId = getExhibitionId();
+
+    if (exhibitionId) {
+        // Если находимся на странице выставки
+        await loadSectionsAndContents(exhibitionId);
+        setupSectionControls();
+    } else {
+        // Если на главной странице
+        await loadExhibitions();
+    }
+}
+
+// Загрузка списка выставок (для главной страницы)
+async function loadExhibitions() {
+    try {
+        const response = await fetch('http://localhost:8000/page/exhibitions/');
+        const exhibitions = await response.json();
+
+        const container = document.getElementById('exhibitionsContainer');
+        container.innerHTML = exhibitions.map(exh => `
+            <div class="exhibition" data-id="${exh.id}">
+                <div class="exhibition__border">
+                    <div class="exhibition__img">
+                        <img src="../static/picture/c2e96839-f8d5-48d2-9b64-a8621f59c589.jpg">
+                    </div>
+                    <div class="exhibition__right">
+                        <div class="exhibition__title">
+                            <h3>${exh.title}</h3>
+                        </div>
+                        <button onclick="window.location.href='/exhibitions/${exh.id}'">
+                            Редактировать выставку
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Ошибка загрузки выставок:', error);
+    }
+}
 
 
-async function loadSectionsAndContents() {
+
+
+
+// Загрузка элементов выставки
+async function loadSectionsAndContents(exhibitionId) {
 const [sectionsResponse, contentsResponse, booksResponse] = await Promise.all([
-		fetch('http://localhost:8000/page/sections'),
-		fetch('http://localhost:8000/page/contents/'),
-		fetch('http://localhost:8000/page/books/')
-]);
+        fetch(`http://localhost:8000/page/exhibitions/${exhibitionId}/sections/`),
+        fetch('http://localhost:8000/page/contents/'),
+        fetch('http://localhost:8000/page/books/')
+    ]);
 
 const [sections, contents, books] = await Promise.all([
 		sectionsResponse.json(),
@@ -61,6 +113,11 @@ sectionsList.innerHTML = sections.map(section => {
 			</li>
 		`;
 }).join('');
+
+const exhibitionResponse = await fetch(`http://localhost:8000/page/exhibitions/${exhibitionId}`);
+const exhibition = await exhibitionResponse.json();
+        document.getElementById('exhibitionTitle').textContent = exhibition.title;
+
 
 document.querySelectorAll('.edit-btn').forEach(btn => {
 		btn.addEventListener('click', handleEditClick);
@@ -209,10 +266,12 @@ document.getElementById('modalBookSave').addEventListener('click', async () => {
 	}
 });
 
-
+// Создание нового раздела
 async function createSections() {
+	const exhibitionID = getExhibitionId();
 	const titleSections = document.getElementById('titleSections').value;
-	await fetch('http://localhost:8000/page/sections', {
+
+	await fetch(`http://localhost:8000/page/exhibitions/${exhibitionId}/sections/`, {
 		method: 'POST',
 		headers: {'Content-Type': 'application/json'},
 		body: JSON.stringify({ title: titleSections })
@@ -220,9 +279,10 @@ async function createSections() {
 	loadSectionsAndContents();
 	document.getElementById('titleSections').value = '';
 }
-
+// Обновление раздела
 async function updateSection(id, newTitle) {
-	const response = await fetch(`http://localhost:8000/page/sections/${id}`, {
+	const exhibitionId = getExhibitionId();
+	const response = await fetch(`http://localhost:8000/page/exhibitions/${exhibitionId}/sections/${id}`, {
 		method: 'PUT',
 		headers: {'Content-Type': 'application/json'},
 		body: JSON.stringify({ title: newTitle })
@@ -253,7 +313,8 @@ function handleEditClick(event) {
 }
 
 async function deleteSections(id) {
-	await fetch(`http://localhost:8000/page/sections/${id}`, {
+	const exhibitionId = getExhibitionId();
+	await fetch(`http://localhost:8000/page/exhibitions/${exhibitionId}/sections/${id}`, {
 		method: 'DELETE',
 		headers: {'Content-Type': 'application/json'},
 	});
