@@ -42,13 +42,6 @@ app.mount(
     StaticFiles(directory=os.path.join(BASE_DIR, "..", "..", "frontend", "static")),
     name="static",
 )
-app.mount(
-    "/picture",
-    StaticFiles(
-        directory=os.path.join(BASE_DIR, "..", "..", "frontend", "static", "picture")
-    ),
-    name="picture",
-)
 
 if __name__ == "__main__":
     import uvicorn
