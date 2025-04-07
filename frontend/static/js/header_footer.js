@@ -48,6 +48,7 @@ async function updateHeader(){
         if (isAuthenticated){
             authButtons.innerHTML = `
                 <li class="header--menu--list--li"><a href="/">Главная</a></li>
+                <li class="header--menu--list--li"><a href="/exhibitions" class="logout-button">Конструктор выставки</a></li>
                 <li class="header--menu--list--li"><a href="/users/logout" class="logout-button">Выйти</a></li>
 `
         } else{

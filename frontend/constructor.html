@@ -1,226 +1,271 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Детали выставки</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style_1.css') }}">
     <style>
-        /* Стили страницы и модального окна */
+        /* Дополнительные стили для страницы деталей */
         .exhibition-header {
             text-align: center;
             margin-bottom: 20px;
         }
+
         .exhibition-header img {
             max-width: 300px;
             display: block;
             margin: 0 auto;
         }
+
         .section {
             border: 1px solid #ddd;
             padding: 15px;
             margin-bottom: 20px;
         }
+
         .section h2 {
             border-bottom: 1px solid #ccc;
             padding-bottom: 5px;
         }
+
         .content {
             margin-left: 20px;
             padding: 10px 0;
-            cursor: pointer;
         }
+
         .book {
             border: 1px solid #ccc;
             padding: 10px;
             margin-bottom: 10px;
         }
+
         .book img {
             max-width: 100px;
             float: left;
             margin-right: 10px;
         }
-        .clearfix::after {
-            content: "";
-            display: table;
-            clear: both;
+
+        /* Стили для модального окна */
+        #modalBackdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal_section {
+            position: relative; 
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
         }
 
-        /* Модальное окно */
-        #editModal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5);
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
         }
-        #editModalContent {
-            background: white;
-            width: 500px;
-            margin: 100px auto;
-            padding: 20px;
-            position: relative;
-        }
-        #closeModal {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 20px;
+
+        .close-modal {
             cursor: pointer;
+            font-size: 24px;
+            color: #666;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .modal-btn.confirm {
+            background: #007bff;
+            color: white;
+        }
+
+        .modal-btn.cancel {
+            background: #6c757d;
+            color: white;
         }
     </style>
 </head>
+
 <body>
-    <a style="height: 50px; display: flex; align-items: center; justify-content: center;" href="/exhibitions/">Обрано к выставкам</a>
     <div id="header-placeholder"></div>
     <div id="main__content" class="main">
         <div id="exhibitionDetail"></div>
     </div>
     <div id="footer-placeholder"></div>
 
-    <!-- Модальное окно -->
-    <div id="editModal">
-        <div id="editModalContent">
-            <span id="closeModal">&times;</span>
-            <form id="editForm">
-                <input type="hidden" id="contentId">
 
-                <div id="textFields" style="display:none;">
-                    <label>Текст:</label>
-                    <textarea id="textData" rows="5" style="width:100%;"></textarea>
-                </div>
-
-                <div id="bookFields" style="display:none;">
-                    <label>Название:</label>
-                    <input type="text" id="bookTitle" style="width:100%;">
-                    <label>Описание:</label>
-                    <textarea id="bookDescription" rows="3" style="width:100%;"></textarea>
-                    <label>Ссылка на изображение:</label>
-                    <input type="text" id="bookImage" style="width:100%;">
-                </div>
-
-                <button type="submit" style="margin-top: 10px;">Сохранить</button>
-            </form>
+    <!-- Добавляем модальное окно для создания секции -->
+    <div id="modalBackdrop" class="modal-backdrop" style="display: none;">
+        <div class="modal_section">
+            <div class="modal-header">
+                <h3>Создание нового раздела</h3>
+                <span class="close-modal" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="sectionTitleInput" placeholder="Введите название раздела" class="modal-input">
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" onclick="closeModal()">Отмена</button>
+                <button class="modal-btn confirm" onclick="createSection()">Создать</button>
+            </div>
         </div>
     </div>
-
     <script>
-        const API_URL = 'http://localhost:8000/page';
+        const API_URL = 'http://localhost:8000/page'
 
+        // Функции для работы с модальным окном
+        function openModal() {
+            document.getElementById('modalBackdrop').style.display = 'flex'
+            document.getElementById('sectionTitleInput').value = '' // Очищаем поле при открытии
+        }
+
+        function closeModal() {
+            document.getElementById('modalBackdrop').style.display = 'none'
+        }
+
+        // Обработчик клика вне модального окна
+        document.getElementById('modalBackdrop').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeModal()
+            }
+        })
+        // Извлекаем ID выставки из URL"
         function getExhibitionIdFromUrl() {
-            const parts = window.location.pathname.split('/');
-            return parts[parts.length - 1] || parts[parts.length - 2];
+            const parts = window.location.pathname.split('/')
+            return parts[parts.length - 1] || parts[parts.length - 2]
         }
 
+        // Запрос деталей выставки с серверного API
         async function loadExhibitionDetail() {
-            const exhibitionId = getExhibitionIdFromUrl();
-            const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}`);
-            return await response.json();
+            const exhibitionId = getExhibitionIdFromUrl()
+            const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}`)
+            return await response.json()
         }
 
+        // Создание секции
+        async function createSection() {
+            const title = document.getElementById('sectionTitleInput').value
+            const exhibitionId = getExhibitionIdFromUrl()
+
+            if (!title.trim()) {
+                alert('Пожалуйста, введите название раздела')
+                return
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}/sections/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ title: title })
+                })
+
+                if (!response.ok) {
+                    const errorData = await response.json()
+                    throw new Error(errorData.detail || 'Ошибка создания раздела')
+                }
+
+                closeModal()
+                await renderExhibitionDetail() // Обновляем список разделов
+
+            } catch (error) {
+                console.error('Error:', error)
+                alert(error.message)
+            }
+        }
+
+        // Отображаем детали выставки и список разделов
         async function renderExhibitionDetail() {
-            const exhibition = await loadExhibitionDetail();
-            const container = document.getElementById('exhibitionDetail');
+            const exhibition = await loadExhibitionDetail()
+            const container = document.getElementById('exhibitionDetail')
+
+            // Блок информации о выставке
             container.innerHTML = `
                 <div class="exhibition-header">
                     <h1>${exhibition.title}</h1>
                     <img src="${exhibition.image}" alt="${exhibition.title}">
                     <p>${exhibition.description || ''}</p>
+                    <button onclick="openModal()" class="add-section-btn">
+                        ➕ Добавить раздел
+                    </button>
                 </div>
-            `;
+            `
 
+            // Если есть разделы, выводим их
             if (exhibition.sections && exhibition.sections.length > 0) {
                 exhibition.sections.forEach(section => {
-                    const sectionDiv = document.createElement('div');
-                    sectionDiv.className = 'section';
-                    sectionDiv.innerHTML = `<h2>${section.title}</h2>`;
+                    const sectionDiv = document.createElement('div')
+                    sectionDiv.className = 'section'
+                    sectionDiv.innerHTML = `<h2>${section.title}</h2>`
 
                     if (section.contents && section.contents.length > 0) {
                         section.contents.forEach(content => {
-                            const contentDiv = document.createElement('div');
-                            contentDiv.className = 'content';
+                            const contentDiv = document.createElement('div')
+                            contentDiv.className = 'content'
 
+                            // Если в контенте есть текст (TextArray)
                             if (content.text_data && content.text_data.text_data) {
-                                contentDiv.innerHTML = `<p>${content.text_data.text_data}</p>`;
-                            } else if (content.books) {
-                                contentDiv.classList.add('book', 'clearfix');
+                                contentDiv.innerHTML = `<p>${content.text_data.text_data}</p>`
+                            }
+                            // Если есть книга
+                            else if (content.books) {
+                                contentDiv.classList.add('book', 'clearfix')
                                 contentDiv.innerHTML = `
                                     <img src="${content.books.image}" alt="${content.books.title}">
                                     <div>
                                         <h3>${content.books.title}</h3>
                                         <p>${content.books.description || ''}</p>
                                     </div>
-                                `;
+                                `
                             }
-
-                            contentDiv.addEventListener('click', () => openEditModal(content));
-                            sectionDiv.appendChild(contentDiv);
-                        });
+                            sectionDiv.appendChild(contentDiv)
+                        })
                     } else {
-                        sectionDiv.innerHTML += '<p>Нет содержимого</p>';
+                        sectionDiv.innerHTML += '<p>Нет содержимого</p>'
                     }
-
-                    container.appendChild(sectionDiv);
-                });
+                    container.appendChild(sectionDiv)
+                })
             } else {
-                container.innerHTML += '<p>Нет разделов для этой выставки.</p>';
+                container.innerHTML += '<p>Нет разделов для этой выставки.</p>'
             }
         }
-
-        function openEditModal(content) {
-            const modal = document.getElementById('editModal');
-            document.getElementById('contentId').value = content.id;
-
-            if (content.text_data) {
-                document.getElementById('textFields').style.display = 'block';
-                document.getElementById('bookFields').style.display = 'none';
-                document.getElementById('textData').value = content.text_data.text_data || '';
-            } else if (content.books) {
-                document.getElementById('textFields').style.display = 'none';
-                document.getElementById('bookFields').style.display = 'block';
-                document.getElementById('bookTitle').value = content.books.title || '';
-                document.getElementById('bookDescription').value = content.books.description || '';
-                document.getElementById('bookImage').value = content.books.image || '';
-            }
-
-            modal.style.display = 'block';
-        }
-
-        document.getElementById('closeModal').addEventListener('click', () => {
-            document.getElementById('editModal').style.display = 'none';
-        });
-
-        document.getElementById('editForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const id = document.getElementById('contentId').value;
-            const payload = {};
-
-            if (document.getElementById('textFields').style.display === 'block') {
-                payload.type = 'text';
-                payload.text_data = document.getElementById('textData').value;
-            } else {
-                payload.type = 'book';
-                payload.title = document.getElementById('bookTitle').value;
-                payload.description = document.getElementById('bookDescription').value;
-                payload.image = document.getElementById('bookImage').value;
-            }
-
-            const response = await fetch(`${API_URL}/contents/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (response.ok) {
-                document.getElementById('editModal').style.display = 'none';
-                await renderExhibitionDetail();
-            } else {
-                alert('Ошибка при обновлении');
-            }
-        });
 
         renderExhibitionDetail();
     </script>
+    <script src="./static/js/header_footer.js"></script>
 </body>
+
 </html>
