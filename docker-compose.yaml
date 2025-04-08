@@ -26,26 +26,24 @@ services:
       - app-network
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platform: linux/amd64  # Если требуется сборка для AMD64
     container_name: fullstack_app
     ports:
       - "80:8000"
     env_file:
       - .env
     environment:
-      DB_HOST: db
+      DB_HOST: db  # Используйте имя сервиса для подключения
       DB_USER: user
       DB_PASSWORD: 1423
       DB_NAME: test
-    volumes:
-      - ./backend:/app/backend
-      - ./frontend:/app/frontend
-    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    # Уберите volumes, если не нужна разработка с "горячей" перезагрузкой
+    # volumes:
+    #   - ./backend:/app/backend
+    #   - ./frontend:/app/frontend
     depends_on:
       db:
         condition: service_healthy
