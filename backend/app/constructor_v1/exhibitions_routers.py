@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timezone
 from starlette.status import HTTP_404_NOT_FOUND
 
-from .img import MEDIA_DIR, ALLOWED_MIME_TYPES, MAX_FILE_SIZE
+from ..img import MEDIA_DIR, ALLOWED_MIME_TYPES, MAX_FILE_SIZE
 from ...core.models import (
     Book,
     get_db,
@@ -18,7 +18,7 @@ from ...core.models import (
     TextArray,
     Exhibition,
 )
-from ..constructor.exhibitions_schemas import (
+from ..constructor_v1.exhibitions_schemas import (
     BookResponse,
     SectionResponse,
     SectionBase,

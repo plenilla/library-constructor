@@ -3,10 +3,9 @@ __all__ = (
     "Section",
     "DatabaseHelper",
     "db_helper",
-    "Content",
     "User",
     "Book",
-    "TextArray",
+    "ContentBlock",
     "UserRole",
     "get_db",
     "Exhibition",
@@ -14,7 +13,7 @@ __all__ = (
 
 from .base import Base
 from .db_helper import DatabaseHelper, db_helper, get_db
-from .exhibitions_models import Content, Section, TextArray, Book, Exhibition
+from .exhibitions_models import ContentBlock, Section, Book, Exhibition
 from .users_models import User, UserRole
 
 engine = db_helper.engine

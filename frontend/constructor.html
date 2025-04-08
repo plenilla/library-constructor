@@ -1,271 +1,345 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 
 <head>
     <meta charset="UTF-8">
-    <title>Детали выставки</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='css/style_1.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exhibition Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Дополнительные стили для страницы деталей */
-        .exhibition-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .exhibition-header img {
-            max-width: 300px;
-            display: block;
-            margin: 0 auto;
-        }
-
-        .section {
+        .content-block {
             border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .section h2 {
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 5px;
-        }
-
-        .content {
-            margin-left: 20px;
-            padding: 10px 0;
-        }
-
-        .book {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-
-        .book img {
-            max-width: 100px;
-            float: left;
-            margin-right: 10px;
-        }
-
-        /* Стили для модального окна */
-        #modalBackdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal_section {
-            position: relative; 
-            background: white;
-            padding: 20px;
             border-radius: 8px;
-            width: 400px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
+            padding: 15px;
             margin-bottom: 15px;
         }
 
-        .close-modal {
-            cursor: pointer;
-            font-size: 24px;
-            color: #666;
-        }
-
-        .modal-input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .modal-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .modal-btn.confirm {
-            background: #007bff;
-            color: white;
-        }
-
-        .modal-btn.cancel {
-            background: #6c757d;
-            color: white;
+        .section-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
         }
     </style>
 </head>
 
 <body>
-    <div id="header-placeholder"></div>
-    <div id="main__content" class="main">
-        <div id="exhibitionDetail"></div>
+    <div class="container mt-5">
+        <!-- Главная страница с выставками -->
+        <div id="exhibitions-page">
+            <h1>Мои выставки</h1>
+            <button class="btn btn-primary mb-3" onclick="showModal('create-exhibition-modal')">
+                Создать выставку
+            </button>
+            <div id="exhibitions-list" class="row"></div>
+        </div>
+
+        <!-- Страница конкретной выставки -->
+        <div id="exhibition-detail-page" style="display: none;">
+            <button class="btn btn-secondary mb-3" onclick="goBack()">← Назад</button>
+            <h1 id="exhibition-title"></h1>
+            <button class="btn btn-primary mb-3" onclick="showModal('create-section-modal')">
+                Добавить раздел
+            </button>
+            <div id="sections-container"></div>
+        </div>
     </div>
-    <div id="footer-placeholder"></div>
 
-
-    <!-- Добавляем модальное окно для создания секции -->
-    <div id="modalBackdrop" class="modal-backdrop" style="display: none;">
-        <div class="modal_section">
-            <div class="modal-header">
-                <h3>Создание нового раздела</h3>
-                <span class="close-modal" onclick="closeModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="sectionTitleInput" placeholder="Введите название раздела" class="modal-input">
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn cancel" onclick="closeModal()">Отмена</button>
-                <button class="modal-btn confirm" onclick="createSection()">Создать</button>
+    <!-- Модальные окна -->
+    <!-- Создание выставки -->
+    <div class="modal fade" id="create-exhibition-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Новая выставка</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="create-exhibition-form" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Название</label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Описание</label>
+                            <textarea class="form-control" name="description"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Изображение</label>
+                            <input type="file" class="form-control" name="image" accept="image/*" required>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_published">
+                            <label class="form-check-label">Опубликовать сразу</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Создать</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-    <script>
-        const API_URL = 'http://localhost:8000/page'
 
-        // Функции для работы с модальным окном
-        function openModal() {
-            document.getElementById('modalBackdrop').style.display = 'flex'
-            document.getElementById('sectionTitleInput').value = '' // Очищаем поле при открытии
-        }
-
-        function closeModal() {
-            document.getElementById('modalBackdrop').style.display = 'none'
-        }
-
-        // Обработчик клика вне модального окна
-        document.getElementById('modalBackdrop').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closeModal()
-            }
-        })
-        // Извлекаем ID выставки из URL"
-        function getExhibitionIdFromUrl() {
-            const parts = window.location.pathname.split('/')
-            return parts[parts.length - 1] || parts[parts.length - 2]
-        }
-
-        // Запрос деталей выставки с серверного API
-        async function loadExhibitionDetail() {
-            const exhibitionId = getExhibitionIdFromUrl()
-            const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}`)
-            return await response.json()
-        }
-
-        // Создание секции
-        async function createSection() {
-            const title = document.getElementById('sectionTitleInput').value
-            const exhibitionId = getExhibitionIdFromUrl()
-
-            if (!title.trim()) {
-                alert('Пожалуйста, введите название раздела')
-                return
-            }
-
-            try {
-                const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}/sections/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ title: title })
-                })
-
-                if (!response.ok) {
-                    const errorData = await response.json()
-                    throw new Error(errorData.detail || 'Ошибка создания раздела')
-                }
-
-                closeModal()
-                await renderExhibitionDetail() // Обновляем список разделов
-
-            } catch (error) {
-                console.error('Error:', error)
-                alert(error.message)
-            }
-        }
-
-        // Отображаем детали выставки и список разделов
-        async function renderExhibitionDetail() {
-            const exhibition = await loadExhibitionDetail()
-            const container = document.getElementById('exhibitionDetail')
-
-            // Блок информации о выставке
-            container.innerHTML = `
-                <div class="exhibition-header">
-                    <h1>${exhibition.title}</h1>
-                    <img src="${exhibition.image}" alt="${exhibition.title}">
-                    <p>${exhibition.description || ''}</p>
-                    <button onclick="openModal()" class="add-section-btn">
-                        ➕ Добавить раздел
-                    </button>
+    <!-- Создание раздела -->
+    <div class="modal fade" id="create-section-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Новый раздел</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-            `
+                <form id="create-section-form">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Название раздела</label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Порядок (опционально)</label>
+                            <input type="number" class="form-control" name="order">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-            // Если есть разделы, выводим их
-            if (exhibition.sections && exhibition.sections.length > 0) {
-                exhibition.sections.forEach(section => {
-                    const sectionDiv = document.createElement('div')
-                    sectionDiv.className = 'section'
-                    sectionDiv.innerHTML = `<h2>${section.title}</h2>`
+    <!-- Создание контент-блока -->
+    <div class="modal fade" id="create-content-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Новый контент</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="create-content-form">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Тип контента</label>
+                            <select class="form-select" name="type" onchange="toggleContentType(this)">
+                                <option value="text">Текст</option>
+                                <option value="book">Книга</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 text-content">
+                            <label class="form-label">Текст</label>
+                            <textarea class="form-control" name="text_content"></textarea>
+                        </div>
+                        <div class="mb-3 book-content" style="display: none;">
+                            <label class="form-label">Выбрать книгу</label>
+                            <select class="form-select" name="book_id"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Порядок (опционально)</label>
+                            <input type="number" class="form-control" name="order">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Добавить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-                    if (section.contents && section.contents.length > 0) {
-                        section.contents.forEach(content => {
-                            const contentDiv = document.createElement('div')
-                            contentDiv.className = 'content'
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentExhibitionId = null
 
-                            // Если в контенте есть текст (TextArray)
-                            if (content.text_data && content.text_data.text_data) {
-                                contentDiv.innerHTML = `<p>${content.text_data.text_data}</p>`
-                            }
-                            // Если есть книга
-                            else if (content.books) {
-                                contentDiv.classList.add('book', 'clearfix')
-                                contentDiv.innerHTML = `
-                                    <img src="${content.books.image}" alt="${content.books.title}">
-                                    <div>
-                                        <h3>${content.books.title}</h3>
-                                        <p>${content.books.description || ''}</p>
-                                    </div>
-                                `
-                            }
-                            sectionDiv.appendChild(contentDiv)
-                        })
-                    } else {
-                        sectionDiv.innerHTML += '<p>Нет содержимого</p>'
-                    }
-                    container.appendChild(sectionDiv)
-                })
-            } else {
-                container.innerHTML += '<p>Нет разделов для этой выставки.</p>'
-            }
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            loadExhibitions()
+            setupFormHandlers()
+        })
+
+        // Загрузка выставок
+        async function loadExhibitions() {
+            const response = await fetch('/v2/exhibitions/')
+            const exhibitions = await response.json()
+            renderExhibitions(exhibitions)
         }
 
-        renderExhibitionDetail();
+        // Рендер списка выставок
+        function renderExhibitions(exhibitions) {
+            const container = document.getElementById('exhibitions-list')
+            container.innerHTML = exhibitions.map(exh => `
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <img src="${exh.image}" class="card-img-top" alt="${exh.title}">
+                        <div class="card-body">
+                            <h5 class="card-title">${exh.title}</h5>
+                            <p class="card-text">${exh.description}</p>
+                            <button onclick="loadExhibitionDetail(${exh.id})" class="btn btn-primary">
+                                Открыть
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('')
+        }
+
+        // Загрузка деталей выставки
+        async function loadExhibitionDetail(id) {
+            currentExhibitionId = id
+            const response = await fetch(`/v2/exhibitions/${id}`)
+            const exhibition = await response.json()
+
+            document.getElementById('exhibitions-page').style.display = 'none'
+            document.getElementById('exhibition-detail-page').style.display = 'block'
+            document.getElementById('exhibition-title').textContent = exhibition.title
+
+            loadSections(id)
+        }
+
+        // Загрузка разделов
+        async function loadSections(exhibitionId) {
+            const response = await fetch(`/v2/exhibitions/${exhibitionId}/sections/`)
+            const sections = await response.json()
+            renderSections(sections)
+        }
+
+        // Рендер разделов
+        function renderSections(sections) {
+            const container = document.getElementById('sections-container')
+            container.innerHTML = sections.sort((a, b) => a.order - b.order).map(section => `
+                <div class="section-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>${section.title}</h3>
+                        <button class="btn btn-sm btn-success" 
+                                onclick="showContentModal(${section.id})">
+                            + Контент
+                        </button>
+                    </div>
+                    <div id="section-${section.id}-content"></div>
+                </div>
+            `).join('')
+
+            sections.forEach(section => loadContentBlocks(section.id))
+        }
+
+        // Обработчики форм
+        function setupFormHandlers() {
+            // Создание выставки
+            document.getElementById('create-exhibition-form').addEventListener('submit', async (e) => {
+                e.preventDefault()
+                const formData = new FormData(e.target)
+
+                const response = await fetch('/v2/exhibitions/', {
+                    method: 'POST',
+                    body: formData
+                })
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance('#create-exhibition-modal').hide()
+                    loadExhibitions()
+                }
+            })
+
+            // Создание раздела
+            document.getElementById('create-section-form').addEventListener('submit', async (e) => {
+                e.preventDefault()
+                const formData = new FormData(e.target)
+                const data = Object.fromEntries(formData.entries())
+                data.order = data.order === "" ? null : data.order;
+                const response = await fetch(`/v2/exhibitions/${currentExhibitionId}/sections/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance('#create-section-modal').hide()
+                    loadSections(currentExhibitionId)
+                }
+            })
+
+            // Создание контент-блока
+            document.getElementById('create-content-form').addEventListener('submit', async (e) => {
+                e.preventDefault()
+                const formData = new FormData(e.target)
+                const data = Object.fromEntries(formData.entries())
+                data.order = data.order === "" ? null : data.order;
+                const sectionId = document.getElementById('create-content-form').dataset.sectionId
+
+                const response = await fetch(`/v2/sections/${sectionId}/content/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance('#create-content-modal').hide()
+                    loadContentBlocks(sectionId)
+                }
+            })
+        }
+
+        // Показать модальное окно
+        function showModal(modalId) {
+            const modal = new bootstrap.Modal(document.getElementById(modalId))
+            modal.show()
+        }
+
+        // Назад к списку выставок
+        function goBack() {
+            document.getElementById('exhibitions-page').style.display = 'block'
+            document.getElementById('exhibition-detail-page').style.display = 'none'
+        }
+
+        // Переключение типа контента
+        function toggleContentType(select) {
+            document.querySelectorAll('.text-content, .book-content').forEach(el => {
+                el.style.display = 'none'
+            })
+            document.querySelector(`.${select.value}-content`).style.display = 'block'
+        }
+
+        // Показать модальное окно контента
+        async function showContentModal(sectionId) {
+            const booksResponse = await fetch('/v2/books/')
+            const books = await booksResponse.json()
+
+            const bookSelect = document.querySelector('#create-content-form select[name="book_id"]')
+            bookSelect.innerHTML = books.map(book =>
+                `<option value="${book.id}">${book.title}</option>`
+            ).join('')
+
+            document.getElementById('create-content-form').dataset.sectionId = sectionId
+            showModal('create-content-modal')
+        }
+
+        // Загрузка контент-блоков
+        async function loadContentBlocks(sectionId) {
+            const response = await fetch(`/v2/sections/${sectionId}/content/`)
+            const contentBlocks = await response.json()
+            renderContentBlocks(sectionId, contentBlocks)
+        }
+
+        // Рендер контент-блоков
+        function renderContentBlocks(sectionId, blocks) {
+            const container = document.getElementById(`section-${sectionId}-content`)
+            container.innerHTML = blocks.sort((a, b) => b.order - a.order).map(block => `
+                <div class="content-block">
+                    ${block.type === 'text' ?
+                    `<p>${block.text_content}</p>` :
+                    `<div class="card">
+                            <img src="${block.book.image_url}" class="card-img-top">
+                            <div class="card-body">
+                                <h5>${block.book.title}</h5>
+                            </div>
+                        </div>`
+                }
+                </div>
+            `).join('')
+        }
     </script>
-    <script src="./static/js/header_footer.js"></script>
 </body>
 
 </html>

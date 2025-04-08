@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>Детали выставки</title>
@@ -53,71 +53,105 @@
     <div id="footer-placeholder"></div>
 
     <script>
-        const API_URL = 'http://localhost:8000/page';
+        const API_URL = 'http://localhost:8000/v2';
 
-        // Извлекаем ID выставки из URL"
+        // Извлекаем ID выставки из URL (предполагается, что ID находится в конце URL)
         function getExhibitionIdFromUrl() {
             const parts = window.location.pathname.split('/');
             return parts[parts.length - 1] || parts[parts.length - 2];
         }
 
-        // Запрос деталей выставки с серверного API
+        // Запрашиваем детали выставки
         async function loadExhibitionDetail() {
             const exhibitionId = getExhibitionIdFromUrl();
             const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}`);
+            if (!response.ok) {
+                throw new Error('Не удалось получить данные выставки');
+            }
             return await response.json();
         }
 
-        // Отображаем детали выставки и список разделов
+        // Запрашиваем список разделов выставки (без вложенного содержимого)
+        async function loadExhibitionSections() {
+            const exhibitionId = getExhibitionIdFromUrl();
+            const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}/sections/`);
+            if (!response.ok) {
+                throw new Error('Не удалось получить данные разделов');
+            }
+            return await response.json();
+        }
+
+        // Запрашиваем содержимое конкретного раздела
+        async function loadSectionContent(sectionId) {
+            const response = await fetch(`${API_URL}/sections/${sectionId}/content/`);
+            if (!response.ok) {
+                throw new Error('Не удалось получить данные контент-блоков');
+            }
+            return await response.json();
+        }
+
+        // Отображаем данные на странице
         async function renderExhibitionDetail() {
-            const exhibition = await loadExhibitionDetail();
             const container = document.getElementById('exhibitionDetail');
 
-            // Блок информации о выставке
-            container.innerHTML = `
-                <div class="exhibition-header">
-                    <h1>${exhibition.title}</h1>
-                    <img src="${exhibition.image}" alt="${exhibition.title}">
-                    <p>${exhibition.description || ''}</p>
-                </div>
-            `;
+            try {
+                // Загружаем и отображаем информацию о выставке
+                const exhibition = await loadExhibitionDetail();
+                container.innerHTML = `
+                    <div class="exhibition-header">
+                        <h1>${exhibition.title}</h1>
+                        <img src="${exhibition.image}" alt="${exhibition.title}">
+                        <p>${exhibition.description || ''}</p>
+                    </div>
+                `;
 
-            // Если есть разделы, выводим их
-            if (exhibition.sections && exhibition.sections.length > 0) {
-                exhibition.sections.forEach(section => {
-                    const sectionDiv = document.createElement('div');
-                    sectionDiv.className = 'section';
-                    sectionDiv.innerHTML = `<h2>${section.title}</h2>`;
+                // Загружаем разделы выставки
+                const sections = await loadExhibitionSections();
+                if (sections && sections.length > 0) {
+                    // Создаем контейнер для разделов
+                    const sectionsContainer = document.createElement('div');
 
-                    if (section.contents && section.contents.length > 0) {
-                        section.contents.forEach(content => {
-                            const contentDiv = document.createElement('div');
-                            contentDiv.className = 'content';
+                    // Перебираем разделы последовательно
+                    for (const section of sections) {
+                        const sectionContainer = document.createElement('div');
+                        sectionContainer.className = 'section';
+                        sectionContainer.innerHTML = `<h2>${section.title}</h2>`;
 
-                            // Если в контенте есть текст (TextArray)
-                            if (content.text_data && content.text_data.text_data) {
-                                contentDiv.innerHTML = `<p>${content.text_data.text_data}</p>`;
-                            }
-                            // Если есть книга
-                            else if (content.books) {
-                                contentDiv.classList.add('book', 'clearfix');
-                                contentDiv.innerHTML = `
-                                    <img src="${content.books.image}" alt="${content.books.title}">
-                                    <div>
-                                        <h3>${content.books.title}</h3>
-                                        <p>${content.books.description || ''}</p>
-                                    </div>
-                                `;
-                            }
-                            sectionDiv.appendChild(contentDiv);
-                        });
-                    } else {
-                        sectionDiv.innerHTML += '<p>Нет содержимого</p>';
+                        // Загружаем контент-блоки для данного раздела
+                        const contentBlocks = await loadSectionContent(section.id);
+                        if (contentBlocks && contentBlocks.length > 0) {
+                            contentBlocks.forEach(block => {
+                                let blockHTML = '';
+                                if (block.type === 'text') {
+                                    blockHTML = `<div class="content"><p>${block.text_content}</p></div>`;
+                                } else if (block.type === 'book' && block.book) {
+                                    blockHTML = `
+                                        <div class="content book clearfix">
+                                            <img src="${block.book.image_url}" alt="${block.book.title}">
+                                            <div>
+                                                <h3>${block.book.title}</h3>
+                                                <p>${block.book.annotations || ''}</p>
+                                            </div>
+                                        </div>`;
+                                }
+                                sectionContainer.innerHTML += blockHTML;
+                            });
+                        } else {
+                            sectionContainer.innerHTML += `<div class="content"><p>Нет содержимого</p></div>`;
+                        }
+
+                        // Добавляем раздел в контейнер разделов
+                        sectionsContainer.appendChild(sectionContainer);
                     }
-                    container.appendChild(sectionDiv);
-                });
-            } else {
-                container.innerHTML += '<p>Нет разделов для этой выставки.</p>';
+
+                    // Добавляем разделы в общий контейнер
+                    container.appendChild(sectionsContainer);
+                } else {
+                    container.innerHTML += `<p>Нет разделов для этой выставки.</p>`;
+                }
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = `<p>Ошибка загрузки данных.</p>`;
             }
         }
 

@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from fastapi import UploadFile, Form, File
 from datetime import datetime
 
-from .img import ALLOWED_MIME_TYPES, MAX_FILE_SIZE
+from ..img import ALLOWED_MIME_TYPES, MAX_FILE_SIZE
 
 
 class ExhibitionBase(BaseModel):

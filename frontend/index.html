@@ -17,7 +17,7 @@
             </div>
             <div id="footer-placeholder"></div>
     <script>
-        const API_URL = 'http://localhost:8000/page'
+        const API_URL = 'http://localhost:8000/v2'
 
         // Получение всех выставок
         async function loadExhibitions() {
@@ -68,29 +68,6 @@
                 container.appendChild(div)
             })
         }
-
-        // Создание новой выставки
-        async function createExhibition() {
-            const title = document.getElementById('exhibitionTitle').value
-            await fetch(`${API_URL}/exhibitions/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title })
-            })
-            renderExhibitions()
-        }
-
-        // Удаление выставки
-        async function deleteExhibition(exhibitionId) {
-            if (confirm('Delete this exhibition and all its content?')) {
-                await fetch(`${API_URL}/exhibitions/${exhibitionId}`, {
-                    method: 'DELETE'
-                })
-                renderExhibitions()
-            }
-        }
-
-        // Инициализация
         renderExhibitions();
     </script>
         </div>
