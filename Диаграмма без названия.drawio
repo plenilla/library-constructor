@@ -1,0 +1,99 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0" version="26.2.9">
+  <diagram name="Страница — 1" id="9DV9ibeIYlXm7hKgHx1D">
+    <mxGraphModel dx="1426" dy="761" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="rXHV2SCCSfCKZun96U6L-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="rXHV2SCCSfCKZun96U6L-1" target="rXHV2SCCSfCKZun96U6L-6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="413" y="290" />
+              <mxPoint x="504" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="rXHV2SCCSfCKZun96U6L-1" target="rXHV2SCCSfCKZun96U6L-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="rXHV2SCCSfCKZun96U6L-1" target="rXHV2SCCSfCKZun96U6L-2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="413" y="290" />
+              <mxPoint x="310" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="rXHV2SCCSfCKZun96U6L-1" target="rXHV2SCCSfCKZun96U6L-25">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="413" y="290" />
+              <mxPoint x="214" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-1" value="&lt;b&gt;Главная страница&lt;/b&gt;" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="389" y="180" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-2" value="Справка" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="290" y="360" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="rXHV2SCCSfCKZun96U6L-4" target="rXHV2SCCSfCKZun96U6L-14">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="413" y="470" />
+              <mxPoint x="504" y="470" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-4" value="Регистрация" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="389.5" y="360" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="rXHV2SCCSfCKZun96U6L-6" target="rXHV2SCCSfCKZun96U6L-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-6" value="Войти" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="360" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="rXHV2SCCSfCKZun96U6L-12" target="rXHV2SCCSfCKZun96U6L-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-12" value="&lt;div&gt;Админ Панель&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="360" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-14" value="Публикация ЭКВ" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="500" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-16" value="Справка" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="500" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="rXHV2SCCSfCKZun96U6L-16" target="rXHV2SCCSfCKZun96U6L-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-20" value="&lt;div&gt;Конструктор ЭКВ&lt;/div&gt;" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="630" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-23" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="rXHV2SCCSfCKZun96U6L-20" target="rXHV2SCCSfCKZun96U6L-14">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="530" y="660" as="sourcePoint" />
+            <mxPoint x="580" y="610" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-25" value="&lt;div&gt;Просмотр Выставки&lt;/div&gt;" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="190" y="360" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-30" value="&lt;div&gt;Просмотр Выставки&lt;/div&gt;" style="shape=mxgraph.cisco.misc.page_icon;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="338" y="500" width="48" height="69" as="geometry" />
+        </mxCell>
+        <mxCell id="rXHV2SCCSfCKZun96U6L-31" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" target="rXHV2SCCSfCKZun96U6L-30">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="460" y="470" as="sourcePoint" />
+            <mxPoint x="320" y="470" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="360" y="470" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
