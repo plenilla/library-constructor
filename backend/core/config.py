@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     db_echo: bool = True
     
     class Config:
-        env_file = ".env"
+        env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
         env_file_encoding = 'utf-8'
 
 settings = Settings()
