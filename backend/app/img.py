@@ -1,6 +1,7 @@
 from pathlib import Path
 
-MEDIA_DIR = Path("frontend/static/picture").resolve()
+BASE_DIR = Path(__file__).resolve().parent.parent
+MEDIA_DIR = BASE_DIR  / ".." / "frontend" / "static" / "picture"
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/gif"}
