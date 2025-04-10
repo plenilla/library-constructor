@@ -4,53 +4,11 @@
     <meta charset="UTF-8">
     <title>Детали выставки</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style_1.css') }}">
-    <style>
-        /* Дополнительные стили для страницы деталей */
-        .exhibition-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .exhibition-header img {
-            max-width: 300px;
-            display: block;
-            margin: 0 auto;
-        }
-        .section {
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        .section h2 {
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 5px;
-        }
-        .content {
-            margin-left: 20px;
-            padding: 10px 0;
-        }
-        .book {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        .book img {
-            max-width: 100px;
-            float: left;
-            margin-right: 10px;
-        }
-        .clearfix::after {
-            content: "";
-            display: table;
-            clear: both;
-        }
-    </style>
 </head>
 <body>
-    <div id="header-placeholder"></div>
     <div id="main__content" class="main">
         <div id="exhibitionDetail"></div>
     </div>
-    <div id="footer-placeholder"></div>
 
     <script>
         const API_URL = '/v2';
@@ -98,10 +56,12 @@
                 // Загружаем и отображаем информацию о выставке
                 const exhibition = await loadExhibitionDetail();
                 container.innerHTML = `
-                    <div class="exhibition-header">
-                        <h1>${exhibition.title}</h1>
+                    <div class="exhibition-header-detail">
                         <img src="${exhibition.image}" alt="${exhibition.title}">
-                        <p>${exhibition.description || ''}</p>
+                        <div class="exhibition-title-detail">
+                            <h1>${exhibition.title}</h1>
+                            <p>${exhibition.description || ''}</p>
+                        </div>
                     </div>
                 `;
 
@@ -156,7 +116,22 @@
         }
 
         renderExhibitionDetail();
+        //отдельный js
+        document.addEventListener('DOMContentLoaded', function() {
+            const exhibitionBlock = document.querySelector('.exhibition-header-detail');
+            
+            // Для мобильных и ПК
+            exhibitionBlock.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        
+            // Скрываем при клике вне блока (опционально)
+            document.addEventListener('click', function(e) {
+                if (!exhibitionBlock.contains(e.target)) {
+                    exhibitionBlock.classList.remove('active');
+                }
+            });
+        });
     </script>
-    <script src="./static/js/header_footer.js"></script>
 </body>
 </html>
