@@ -28,35 +28,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     updateHeader();
 });
-async function checkAuth(){
+async function updateHeader(){
     try {
         const response = await fetch('/users/check_auth');
         const data = await response.json();
-        return data.is_authenticated;
-    } catch (error){
-        console.error("Ошибка проверки авторизации: ", error);
-        return false;
-    }
-}
-
-
-async function updateHeader(){
-    const isAuthenticated = await checkAuth();
-    const authButtons = document.getElementById('auth-buttons');
+        const authButtons = document.getElementById('auth-buttons');
 
     if (authButtons){
-        if (isAuthenticated){
+        if (data.is_authenticated){
+            let librarianMenu = '';
+            if (data.role === 'librarian'){
+                librarianMenu = `
+                  <li class="header--menu--list--li">
+                      <a href="/exhibitions" class="logout-button">Конструктор выставки</a>
+                  </li>`;
+            }
             authButtons.innerHTML = `
                 <li class="header--menu--list--li"><a href="/">Главная</a></li>
-                <li class="header--menu--list--li"><a href="/exhibitions" class="logout-button">Конструктор выставки</a></li>
+                ${librarianMenu}
                 <li class="header--menu--list--li"><a href="/users/logout" class="logout-button">Выйти</a></li>
-`
+`;
         } else{
             authButtons.innerHTML = `
                 <li class="header--menu--list--li"><a href="/">Главная</a></li>
                 <a href="/user-login/" class="header--menu--list--li"">Вход</a>
                 <a href="/user-regit/" class="header--menu--list--li"">Регистрация</a>
-            `;
+            `;}
         }
+    }catch (error){
+        console.error("Ошибка обновления меню: ", error);
     }
 }
