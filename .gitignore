@@ -21,3 +21,7 @@ env/
 
 # FastAPI (если используете)
 .cache/
+
+
+# ненужный кеш фотографий
+picture/jpg,png
