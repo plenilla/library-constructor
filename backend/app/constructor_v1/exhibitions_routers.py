@@ -297,12 +297,8 @@ async def update_section(
     return db_update_section
 
 
-@router.delete(
-    "/exhibitions/{exhibition_id}/sections/{section_id}", response_model=SectionResponse
-)
-async def update_section(
-    section_id: int, exhibition_id: int, db: AsyncSession = Depends(get_db)
-):
+@router.delete("/exhibitions/{exhibition_id}/sections/{section_id}")
+async def delete_section(section_id: int, exhibition_id: int, db: AsyncSession = Depends(get_db)):
     """
     Удалить раздел по ID.
 
@@ -637,3 +633,6 @@ async def delete_content(content_id: int, db: AsyncSession = Depends(get_db)):
             await db.commit()
         # Возвращаем успешное сообщение
         return {"message": "Контент и связанный текст удалены"}
+    
+
+            

@@ -37,15 +37,27 @@ async function updateHeader(){
     if (authButtons){
         if (data.is_authenticated){
             let librarianMenu = '';
+            let adminMenu = '';
             if (data.role === 'librarian'){
                 librarianMenu = `
                   <li class="header--menu--list--li">
                       <a href="/exhibitions" class="logout-button">Конструктор выставки</a>
                   </li>`;
             }
+            else if (data.role === 'admin'){
+                adminMenu = `
+                <li class="header--menu--list--li">
+                      <a href="/exhibitions" class="logout-button">Конструктор выставки</a>
+                </li>
+                <li class="header--menu--list--li">
+                      <a href="/admin/dashboard" class="logout-button">Админ панель</a>
+                </li>
+                `;
+            }
             authButtons.innerHTML = `
                 <li class="header--menu--list--li"><a href="/">Главная</a></li>
                 ${librarianMenu}
+                ${adminMenu}
                 <li class="header--menu--list--li"><a href="/users/logout" class="logout-button">Выйти</a></li>
 `;
         } else{

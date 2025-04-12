@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import UploadFile, File, Form
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete, and_, update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
@@ -364,23 +364,28 @@ async def get_section_content(section_id: int, db: AsyncSession = Depends(get_db
     return content_blocks
 
 
-@router.get("/content/{content_id}", response_model=ContentBlockResponse)
-async def get_content_block(content_id: int, db: AsyncSession = Depends(get_db)):
+@router.get("/content/{content_id}/books/", response_model=List[BookResponse])
+async def get_all_content_book(content_id: int, db: AsyncSession = Depends(get_db)):
     """
-    Получить отдельный контент-блок по его ID.
-    
+    Получить все книги из контент-блок
     Args:
         content_id (int): Идентификатор контент-блока.
         db (AsyncSession): Сессия базы данных.
 
     Returns:
-        ContentBlockResponse: Данные контент-блока.
+        BookResponse: Полученные книги
     """
-    result = await db.execute(select(ContentBlock).where(ContentBlock.id == content_id))
+    result = await db.execute(
+        select(ContentBlock).where(ContentBlock.id == content_id, ContentBlock.type == "book")
+    )
     content = result.scalar_one_or_none()
     if not content:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Content block not found")
-    return content
+    
+    resultBook = await db.execute(select(Book))
+    books = resultBook.scalars().all()
+    
+    return books
 
 '''Взаимодействие с книгой'''
 
@@ -480,3 +485,96 @@ async def delete_book(book_id: int, db: AsyncSession = Depends(get_db)):
     await db.delete(book)
     await db.commit()
     return {"status": "success"}
+
+
+@router.patch("/content/{content_id}/book/{book_id}", response_model=ContentBlockResponse)
+async def unlink_book_from_content(
+    content_id: int,
+    book_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    # 1. Находим контент-блок с указанными ID и привязанной книгой
+    result = await db.execute(
+        select(ContentBlock)
+        .where(
+            (ContentBlock.id == content_id) &
+            (ContentBlock.book_id == book_id) &
+            (ContentBlock.type == "book")  # Добавляем проверку типа
+        )
+    )
+    content_block = result.scalar_one_or_none()
+    
+    if not content_block:
+        raise HTTPException(
+            status_code=404,
+            detail="Content block not found or not linked to this book"
+        )
+
+    # 2. Обновляем значение
+    content_block.book_id = None
+    
+    try:
+        await db.commit()
+        await db.refresh(content_block)  # Обновляем объект
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(500, f"Database error: {str(e)}")
+
+    return content_block
+
+
+@router.delete("/content/{content_id}")
+async def delete_content_text(
+    content_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+        content = await db.execute(
+            select(ContentBlock)
+            .where(
+                and_(
+                    ContentBlock.id == content_id,
+                    ContentBlock.type == 'text'
+                )
+            )
+        )
+        content = content.scalars().first()
+        
+        await db.execute(
+            delete(ContentBlock)
+            .where(
+                and_(
+                    ContentBlock.id == content_id,
+                    ContentBlock.type == 'text'
+                )
+            )
+        )
+        await db.commit()
+
+
+@router.delete("/exhibitions/{exhibition_id}/sections/{section_id}")
+async def delete_section(section_id: int, exhibition_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Удалить раздел по ID.
+
+    Args:
+        section_id (int): ID раздела.
+        db (AsyncSession): Сессия базы данных.
+        exhibition_id (int): ID выставки
+
+    Returns:
+        Удаленный раздел.
+    """
+    result = await db.execute(
+        select(Section)
+        .where(Section.id == section_id)
+        .where(Section.exhibition_id == exhibition_id)
+    )
+
+    db_delete_section = result.scalars().first()
+
+    if not db_delete_section:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="section not found")
+
+    await db.delete(db_delete_section)
+    await db.commit()
+    return {"delete section"}
