@@ -24,7 +24,7 @@ async def item_page(request: Request):
 
 
 # Endpoint для получения списка пользователей в JSON
-@router.get("/api/users", response_class=JSONResponse)
+@router.get("/dashboard/users", response_class=JSONResponse)
 async def get_users(request: Request, db: AsyncSession = Depends(get_db)):
     check_admin(request)
     result = await db.execute(select(User))
@@ -43,7 +43,7 @@ class UserUpdate(BaseModel):
     role: str
 
 # Endpoint для обновления данных пользователя (используем JSON)
-@router.put("/dashboard/{user_id}")
+@router.put("/dashboard/users/{user_id}")
 async def update_user(user_id: int, update: UserUpdate, db: AsyncSession = Depends(get_db)):
     try:
         result = await db.execute(select(User).where(User.id == user_id))

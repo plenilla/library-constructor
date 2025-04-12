@@ -48,7 +48,7 @@ async def login(
     redirect_map = {
         UserRole.READER: "/",
         UserRole.LIBRARIAN: "/exhibitions/",
-        UserRole.ADMIN: "/admin_dashboard/",
+        UserRole.ADMIN: "/admin/dashboard/",
     }
 
     return RedirectResponse(url=redirect_map.get(user.role, "/"), status_code=302)
