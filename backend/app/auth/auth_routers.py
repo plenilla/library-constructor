@@ -48,7 +48,7 @@ async def login(
     redirect_map = {
         UserRole.READER: "/",
         UserRole.LIBRARIAN: "/exhibitions/",
-        UserRole.ADMIN: "/admin_dashboard/",
+        UserRole.ADMIN: "/admin/dashboard/",
     }
 
     return RedirectResponse(url=redirect_map.get(user.role, "/"), status_code=302)
@@ -64,23 +64,20 @@ async def check_auth(request: Request):
     Returns:
         HTMLResponse: Вывод авторизован ли пользователь
     """
-    return {"is_authenticated": "user_id" in request.session}
+    is_authenticated = "user_id" in request.session
+    role = request.session.get("role", "None")
+    return {"is_authenticated": is_authenticated, "role": role}
 
 
 @router.get("/logout", response_class=HTMLResponse)
 async def logout(request: Request):
-    """
-    Авторизации на аккаунт
-
-    Args:
-        db (AsyncSession): Сессия базы данных.
-        request (Request): Запрос на сессию для выхода
-    Returns:
-        HTMLResponse: Вывод пользователя
-    """
+    # Очищаем данные сессии
     request.session.clear()
-    return RedirectResponse(url="/", status_code=302)
+    # Создаем ответ с перенаправлением
+    response = RedirectResponse(url="/", status_code=302)
 
+    response.delete_cookie("session")
+    return response
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

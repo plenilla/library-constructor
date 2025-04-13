@@ -61,11 +61,12 @@ async def item_page(request: Request, exhibition_id: int):
 async def item_page(request: Request, exhibition_id: int):
     """
     Страница деталей выставки.
-    Принимает exhibition_id как GET-параметр.
+    Принимает exhibition_id как часть пути.
     """
     return templates.TemplateResponse(
         "constructor.html", {"request": request, "exhibition_id": exhibition_id}
     )
+
 
 
 @router.get("/user-regit/", response_class=HTMLResponse)

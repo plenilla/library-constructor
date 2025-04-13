@@ -10,7 +10,6 @@ from .base import Base
 class UserRole(enum.Enum):
     READER = "reader"
     LIBRARIAN = "librarian"
-    GUEST = "guest"
     ADMIN = "admin"
 
 
