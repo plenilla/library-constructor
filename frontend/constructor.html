@@ -146,263 +146,364 @@
     <!-- Подключаем Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-         let currentExhibitionId = null;
+      let currentExhibitionId = null;
+      function getExhibitionId() {
+        // Пробуем получить из path
+        const pathParts = window.location.pathname.split("/");
+        const pathId = Number(pathParts[pathParts.length - 1]);
 
-        // Функция для отображения модального окна по id
-        function showModal(modalId) {
-        	const modalElement = document.getElementById(modalId);
-        	const modal = new bootstrap.Modal(modalElement);
-        	modal.show();
-        }
+        // Пробуем получить из query
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryId = Number(urlParams.get("exhibition_id"));
 
-        // Переключение типа контента (текст/книга)
-        function toggleContentType(select) {
-          document.querySelectorAll('.text-content, .book-content').forEach(el => {
-          el.style.display = 'none';
-          el.querySelector('input, textarea, select').value = ''; // Очищаем значения
-          });
-          document.querySelector(`.${select.value}-content`).style.display = 'block';
-        }
-
-        // Загрузка списка выставок
-        async function loadExhibitions() {
-        	const response = await fetch(`/v2/exhibitions/`);
-        	const exhibitions = await response.json();
-        	renderExhibitions(exhibitions);
-        }
-        // Загрузка деталей конкретной выставки
-        async function loadExhibitionDetail(id) {
-        	currentExhibitionId = id;
-        	const response = await fetch(`/v2/exhibitions/${id}`);
-        	const exhibition = await response.json();
-        	document.getElementById('exhibition-detail-page').style.display = 'block';
-        	document.getElementById('exhibition-title').textContent = exhibition.title;
-        	document.getElementById('exhibition-img').src = exhibition.image;
-        	loadSections(id);
-        }
-
-        // Загрузка разделов выставки
-        async function loadSections(exhibitionId) {
-        	const response = await fetch(`/v2/exhibitions/${exhibitionId}/sections/`);
-        	const sections = await response.json();
-        	renderSections(sections);
-        }
-
-        // Рендер разделов
-        function renderSections(sections) {
-        	const container = document.getElementById('sections-container');
-        	container.innerHTML = sections.sort((a, b) => a.order - b.order).map(section =>
-        		`<div class="section-container">
-                          <div class="mb-3">
-                            <h3>${section.title}</h3>
-                             <button class="btn btn-sm btn-danger" onclick="handleDeleteSection(${section.id})">
-                                Удалить раздел
-                              </button>
-                            <button class="btn btn-sm btn-success" onclick="showContentModal(${section.id})">
-                              + Контент
-                            </button>
-                          </div>
-                          <div id="section-${section.id}-content"></div>
-                        </div>`
-        	).join('');
-        	sections.forEach(section => loadContentBlocks(section.id));
-        }
-
-        async function handleDeleteSection(sectionId) {
-        	const isConfirmed = confirm('Вы уверены, что хотите удалить этот раздел?');
-        	if (!isConfirmed) return;
-
-        	try {
-        		const response = await fetch(`/v2/exhibitions/${currentExhibitionId}/sections/${sectionId}`, {
-        			method: 'DELETE'
-        		});
-
-        		if (response.ok) {
-        			// Удаляем раздел из DOM либо обновляем список разделов
-        			const sectionContainer = document.getElementById(`section-container-${sectionId}`);
-        			if (sectionContainer) {
-        				sectionContainer.remove();
-        			} else {
-        				loadSections(currentExhibitionId);
-        			}
-        		} else {
-        			const error = await response.json();
-        			alert(error.detail || 'Ошибка при удалении раздела');
-        		}
-        	} catch (error) {
-        		console.error('Error:', error);
-        		alert('Произошла ошибка при удалении раздела');
-        	}
-        }
-
-        // Загрузка контент-блоков для раздела
-        async function loadContentBlocks(sectionId) {
-        	const response = await fetch(`/v2/sections/${sectionId}/content/`);
-        	const contentBlocks = await response.json();
-        	renderContentBlocks(sectionId, contentBlocks);
-        }
-
-
-        // Рендер контент-блоков для раздела с асинхронной загрузкой книг для блоков типа "book"
-        async function renderContentBlocks(sectionId, blocks) {
-        	const container = document.getElementById(`section-${sectionId}-content`);
-
-        	// Для каждого блока формируем HTML. Для блоков "book" делаем запрос к ручке по id контент-блока.
-        	const htmlPromises = blocks
-        		.sort((a, b) => (a.order || 0) - (b.order || 0))
-        		.map(async block => {
-        			if (block.type === "text") {
-        				return `<div class="content-block" data-block-id="${block.id}">
-                                <p>${block.text_content}</p>
-                                <button onclick="handleDeleteContent(${block.id}, 'text')" class="btn btn-danger">Удалить</button>
-                              </div>`;
-        			} else {
-        				// Для блока типа "book" запрашиваем связанные книги по идентификатору контент-блока
-        				const response = await fetch(`/v2/content/${block.id}/books/`);
-        				const books = await response.json();
-        				// Предполагаем, что список книг содержит один элемент (поскольку CheckConstraint гарантирует наличие ровно одной книги)
-        				const book = books[0] || {};
-        				return `<div class="content-block" data-block-id="${block.id}">
-                                <div class="card">
-                                  <img src="${book.image_url}" class="card-img-top" alt="${book.title}">
-                                  <div class="card-body">
-                                    <h5>${book.title}</h5>
-                                  </div>
-                                </div>
-                                <button onclick="handleDeleteContent(${block.id}, 'book', ${book.id})" class="btn btn-danger">Удалить</button>
-                              </div>`;
-        			}
-        		});
-
-        	// Ожидаем формирования всех HTML-строк и рендерим результат
-        	const htmlArr = await Promise.all(htmlPromises);
-        	container.innerHTML = htmlArr.join('');
-        }
-
-        // Обработчики форм
-        function setupFormHandlers() {
-        	// Создание раздела
-        	document.getElementById('create-section-form').addEventListener('submit', async (e) => {
-        		e.preventDefault();
-        		const formData = new FormData(e.target);
-        		const data = Object.fromEntries(formData.entries());
-        		data.order = data.order === "" ? null : data.order;
-        		const response = await fetch(`/v2/exhibitions/${currentExhibitionId}/sections/`, {
-        			method: 'POST',
-        			headers: { 'Content-Type': 'application/json' },
-        			body: JSON.stringify(data)
-        		});
-        		if (response.ok) {
-        			const modalElement = document.getElementById('create-section-modal');
-        			const modal = bootstrap.Modal.getInstance(modalElement);
-        			modal.hide();
-        			loadSections(currentExhibitionId);
-        			e.target.reset();
-        		}
-        	});
-
-        	// Создание контент-блока
-        	document.getElementById('create-content-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const contentType = formData.get('type');
-
-      // Очищаем ненужные поля в зависимости от типа
-      const data = {
-          type: contentType,
-          order: formData.get('order') || null
-          };
-
-          if (contentType === 'text') {
-              data.text_content = formData.get('text_content');
-          } else {
-              data.book_id = formData.get('book_id');
-          }
-
-          const sectionId = document.getElementById('create-content-form').dataset.sectionId;
-
-          const response = await fetch(`/v2/sections/${sectionId}/content/`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(data)
-          });
-        		if (response.ok) {
-        			const modalElement = document.getElementById('create-content-modal');
-        			const modal = bootstrap.Modal.getInstance(modalElement);
-        			modal.hide();
-        			loadContentBlocks(sectionId);
-        		}
-        	});
-        }
-
-        // Показать модальное окно контента
-        async function showContentModal(sectionId) {
-        	const form = document.getElementById('create-content-form');
-        	form.reset(); // Очищаем все поля
-        	document.querySelector('.book-content').style.display = 'none'; // Скрываем блок книг
-        	document.querySelector('.text-content').style.display = 'block'; // Показываем текст
-        	document.querySelector('select[name="type"]').value = 'text'; // Сбрасываем выбор типа
-
-        	const booksResponse = await fetch('/v2/books/');
-        	const books = await booksResponse.json();
-        	const bookSelect = document.querySelector('#create-content-form select[name="book_id"]');
-        	bookSelect.innerHTML = books.map(book =>
-        		`<option value="${book.id}">${book.title}</option>`
-        	).join('');
-        	document.getElementById('create-content-form').dataset.sectionId = sectionId;
-        	showModal('create-content-modal');
-        }
-
-        async function handleDeleteContent(contentId, contentType, bookId = null) {
-          const isConfirmed = confirm('Вы уверены?');
-          if (!isConfirmed) return;
-
-          try {
-              let endpoint, method;
-
-              if (contentType === 'text') {
-                  endpoint = `/v2/content/${contentId}`;
-                  method = 'DELETE';
-              } else {
-                  // Используем DELETE вместо PATCH
-                  endpoint = `/v2/content/${contentId}`;
-                  method = 'DELETE';
-              }
-
-              const response = await fetch(endpoint, {
-                  method,
-                  headers: {
-                      'Content-Type': 'application/json'
-                  }
-              });
-
-              if (response.ok) {
-                  const blockElement = document.querySelector(`.content-block[data-block-id="${contentId}"]`);
-                  if (blockElement) blockElement.remove();
-              } else {
-                  const error = await response.text();
-                  alert(error || 'Ошибка удаления');
-              }
-          } catch (error) {
-              console.error('Error:', error);
-              alert('Ошибка сети');
-          }
+        return pathId || queryId;
       }
 
-        // Инициализация страницы
-        document.addEventListener('DOMContentLoaded', () => {
-            // Правильное преобразование значения из шаблона
-            const exhibitionIdFromServer = {{ exhibition_id | tojson | default("null") | safe }};
+      // Функция для отображения модального окна по id
+      function showModal(modalId) {
+        const modalElement = document.getElementById(modalId);
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+      }
 
-            if (exhibitionIdFromServer) {
-                document.getElementById('exhibitions-page').style.display = 'none';
-                document.getElementById('exhibition-detail-page').style.display = 'block';
-                loadExhibitionDetail(exhibitionIdFromServer);
-            } else {
-                loadExhibitions();
+      // Переключение типа контента (текст/книга)
+      function toggleContentType(select) {
+        document
+          .querySelectorAll(".text-content, .book-content")
+          .forEach((el) => {
+            el.style.display = "none";
+            el.querySelector("input, textarea, select").value = ""; // Очищаем значения
+          });
+        document.querySelector(`.${select.value}-content`).style.display =
+          "block";
+      }
+
+      // Загрузка деталей конкретной выставки
+      async function loadExhibitionDetail(id) {
+        try {
+          const response = await fetch(`/v2/exhibitions/${id}`);
+          if (!response.ok) throw new Error("Ошибка загрузки выставки");
+
+          const exhibition = await response.json();
+
+          // Показываем страницу деталей
+          document.getElementById("exhibitions-page").style.display = "none";
+          document.getElementById("exhibition-detail-page").style.display =
+            "block";
+
+          document.getElementById("exhibition-title").textContent =
+            exhibition.title;
+          document.getElementById("exhibition-img").src = exhibition.image;
+          await loadSections(id);
+        } catch (error) {
+          console.error("Error loading exhibition:", error);
+          alert(error.message);
+        }
+      }
+
+      // Загрузка разделов выставки
+      async function loadSections(exhibitionId) {
+        const response = await fetch(
+          `/v2/exhibitions/${exhibitionId}/sections/`
+        );
+        const sections = await response.json();
+        renderSections(sections);
+      }
+
+      // Рендер разделов
+      function renderSections(sections) {
+        const container = document.getElementById("sections-container");
+        container.innerHTML = sections
+          .sort((a, b) => a.order - b.order)
+          .map(
+            (section) =>
+              `<div class="section-container">
+                                  <div class="mb-3">
+                                    <h3>${section.title}</h3>
+                                    <button class="btn btn-sm btn-danger" onclick="handleDeleteSection(${section.id})">
+                                        Удалить раздел
+                                      </button>
+                                    <button class="btn btn-sm btn-success" onclick="showContentModal(${section.id})">
+                                      + Контент
+                                    </button>
+                                  </div>
+                                  <div id="section-${section.id}-content"></div>
+                                </div>`
+          )
+          .join("");
+        sections.forEach((section) => loadContentBlocks(section.id));
+      }
+
+      async function handleDeleteSection(sectionId) {
+        const isConfirmed = confirm(
+          "Вы уверены, что хотите удалить этот раздел?"
+        );
+        if (!isConfirmed) return;
+
+        try {
+          const response = await fetch(
+            `/v2/exhibitions/${currentExhibitionId}/sections/${sectionId}`,
+            {
+              method: "DELETE",
             }
-            setupFormHandlers();
-        });
+          );
+
+          if (response.ok) {
+            // Удаляем раздел из DOM либо обновляем список разделов
+            const sectionContainer = document.getElementById(
+              `section-container-${sectionId}`
+            );
+            if (sectionContainer) {
+              sectionContainer.remove();
+            } else {
+              loadSections(currentExhibitionId);
+            }
+          } else {
+            const error = await response.json();
+            alert(error.detail || "Ошибка при удалении раздела");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Произошла ошибка при удалении раздела");
+        }
+      }
+
+      // Загрузка контент-блоков для раздела
+      async function loadContentBlocks(sectionId) {
+        const response = await fetch(`/v2/sections/${sectionId}/content/`);
+        const contentBlocks = await response.json();
+        renderContentBlocks(sectionId, contentBlocks);
+      }
+
+      // Рендер контент-блоков для раздела с асинхронной загрузкой книг для блоков типа "book"
+      async function renderContentBlocks(sectionId, blocks) {
+        const container = document.getElementById(
+          `section-${sectionId}-content`
+        );
+
+        // Для каждого блока формируем HTML. Для блоков "book" делаем запрос к ручке по id контент-блока.
+        const htmlPromises = blocks
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
+          .map(async (block) => {
+            try {
+              if (block.type === "text") {
+                return `
+          <div class="content-block" data-block-id="${block.id}">
+            <p>${block.text_content}</p>
+            <button onclick="handleDeleteContent(${block.id}, 'text')" 
+                    class="btn btn-danger">
+              Удалить
+            </button>
+          </div>`;
+              }
+
+              if (block.type === "book") {
+                // Делаем запрос с обработкой ошибок
+                const response = await fetch(`/v2/content/${block.id}/books/`);
+                if (!response.ok) throw new Error("Ошибка загрузки книг");
+
+                const books = await response.json();
+                const book = books[0] || null;
+
+                // Проверяем наличие обязательных полей
+                if (!book) return '<div class="error">Книга не найдена</div>';
+
+                const safeImage = book.image_url || "/placeholder-book.jpg";
+                const safeTitle = book.title || "Без названия";
+                const safeAuthor = book.author ? `Автор: ${book.author}` : "";
+                const safeAnnotation =
+                  book.annotation || "Описание отсутствует";
+
+                return `
+          <div class="content-block" data-block-id="${block.id}">
+            <div class="book-card">
+              <img src="${safeImage}">
+              <div class="book-info">
+                <h3 class="book-title">${safeTitle}</h3>
+                ${safeAuthor ? `<p class="book-author">${safeAuthor}</p>` : ""}
+                <div class="book-annotation">${safeAnnotation}</div>
+              </div>
+              <button onclick="handleDeleteContent(${block.id}, 'book', ${
+                  book.id
+                })" 
+                      class="btn btn-danger">
+                Удалить
+              </button>
+            </div>
+          </div>`;
+              }
+
+              return '<div class="error">Неизвестный тип контента</div>';
+            } catch (error) {
+              console.error("Ошибка формирования блока:", error);
+              return `
+        <div class="error-block" data-block-id="${block.id}">
+          Ошибка загрузки контента: ${error.message}
+          <button onclick="handleDeleteContent(${block.id}, 'error')"
+                  class="btn btn-danger">
+            Удалить
+          </button>
+        </div>`;
+            }
+          });
+
+        // Ожидаем формирования всех HTML-строк и рендерим результат
+        const htmlArr = await Promise.all(htmlPromises);
+        container.innerHTML = htmlArr.join("");
+      }
+
+      // Обработчики форм
+      function setupFormHandlers() {
+        // Создание раздела
+        document
+          .getElementById("create-section-form")
+          .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.order = data.order === "" ? null : data.order;
+            const response = await fetch(
+              `/v2/exhibitions/${currentExhibitionId}/sections/`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+              }
+            );
+            if (response.ok) {
+              const modalElement = document.getElementById(
+                "create-section-modal"
+              );
+              const modal = bootstrap.Modal.getInstance(modalElement);
+              modal.hide();
+              loadSections(currentExhibitionId);
+              e.target.reset();
+            }
+          });
+
+        // Создание контент-блока
+        document
+          .getElementById("create-content-form")
+          .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const contentType = formData.get("type");
+
+            // Очищаем ненужные поля в зависимости от типа
+            const data = {
+              type: contentType,
+              order: formData.get("order") || null,
+            };
+
+            if (contentType === "text") {
+              data.text_content = formData.get("text_content");
+            } else {
+              data.book_id = formData.get("book_id");
+            }
+
+            const sectionId = document.getElementById("create-content-form")
+              .dataset.sectionId;
+
+            const response = await fetch(`/v2/sections/${sectionId}/content/`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data),
+            });
+            if (response.ok) {
+              const modalElement = document.getElementById(
+                "create-content-modal"
+              );
+              const modal = bootstrap.Modal.getInstance(modalElement);
+              modal.hide();
+              loadContentBlocks(sectionId);
+            }
+          });
+      }
+
+      // Показать модальное окно контента
+      async function showContentModal(sectionId) {
+        const form = document.getElementById("create-content-form");
+        form.reset(); // Очищаем все поля
+        document.querySelector(".book-content").style.display = "none"; // Скрываем блок книг
+        document.querySelector(".text-content").style.display = "block"; // Показываем текст
+        document.querySelector('select[name="type"]').value = "text"; // Сбрасываем выбор типа
+
+        const booksResponse = await fetch("/library/books");
+        const books = await booksResponse.json();
+        const bookSelect = document.querySelector(
+          '#create-content-form select[name="book_id"]'
+        );
+        bookSelect.innerHTML = books
+          .map((book) => `<option value="${book.id}">${book.title}</option>`)
+          .join("");
+        document.getElementById("create-content-form").dataset.sectionId =
+          sectionId;
+        showModal("create-content-modal");
+      }
+
+      async function handleDeleteContent(
+        contentId,
+        sectionsID,
+        contentType,
+        bookId = null
+      ) {
+        const isConfirmed = confirm("Вы уверены?");
+        if (!isConfirmed) return;
+
+        try {
+          let endpoint, method;
+
+          if (contentType === "text") {
+            endpoint = `/v2/sections/${sectionsID}/content/${contentId}`;
+            method = "DELETE";
+          } else {
+            // Используем DELETE вместо PATCH
+            endpoint = `/v2/sections/${sectionsID}/content/${contentId}`;
+            method = "DELETE";
+          }
+
+          const response = await fetch(endpoint, {
+            method,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            const blockElement = document.querySelector(
+              `.content-block[data-block-id="${contentId}"]`
+            );
+            if (blockElement) blockElement.remove();
+          } else {
+            const error = await response.text();
+            alert(error || "Ошибка удаления");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Ошибка сети");
+        }
+      }
+
+      // Обновим функцию инициализации
+      document.addEventListener("DOMContentLoaded", async () => {
+        try {
+          const exhibitionId = getExhibitionId();
+          console.log("Exhibition ID:", exhibitionId); // Добавим лог
+
+          if (!exhibitionId || isNaN(exhibitionId)) {
+            throw new Error("Не указан ID выставки");
+          }
+
+          currentExhibitionId = exhibitionId;
+          await loadExhibitionDetail(exhibitionId);
+          setupFormHandlers();
+        } catch (error) {
+          console.error("Initialization error:", error);
+          alert(error.message);
+          // Перенаправляем на страницу списка при ошибке
+          window.location.href = "/exhibitions";
+        }
+      });
     </script>
   </body>
 </html>
