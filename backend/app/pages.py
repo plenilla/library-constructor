@@ -40,6 +40,12 @@ async def root(request: Request, session: AsyncSession = Depends(get_db)):
         )
 
 
+@router.get("/books/", response_class=HTMLResponse)
+async def books(request: Request):
+    """Это страница со списком всех выставок"""
+    return templates.TemplateResponse("allBooks.html", {"request": request})
+
+
 @router.get("/exhibitions/", response_class=HTMLResponse)
 async def item_page(request: Request):
     """Это страница со списком всех выставок"""
@@ -66,7 +72,6 @@ async def item_page(request: Request, exhibition_id: int):
     return templates.TemplateResponse(
         "constructor.html", {"request": request, "exhibition_id": exhibition_id}
     )
-
 
 
 @router.get("/user-regit/", response_class=HTMLResponse)
