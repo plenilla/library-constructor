@@ -41,16 +41,16 @@ async function updateHeader(){
             if (data.role === 'librarian'){
                 librarianMenu = `
                   <li class="header--menu--list--li">
-                      <a href="/exhibitions" class="logout-button">Конструктор выставки</a>
+                      <a href="/exhibitions" class="header--menu--list--li">Конструктор выставки</a>
+                  </li>
+                  <li class="header--menu--list--li">
+                      <a href="/books" class="header--menu--list--li">Конструктор книги</a>
                   </li>`;
             }
             else if (data.role === 'admin'){
                 adminMenu = `
                 <li class="header--menu--list--li">
-                      <a href="/exhibitions" class="logout-button">Конструктор выставки</a>
-                </li>
-                <li class="header--menu--list--li">
-                      <a href="/admin/dashboard" class="logout-button">Админ панель</a>
+                      <a href="admin/dashboard" class="header--menu--list--l">Админ панель</a>
                 </li>
                 `;
             }

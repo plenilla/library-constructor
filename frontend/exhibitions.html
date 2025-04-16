@@ -8,6 +8,68 @@
       href="{{ url_for('static', path='css/style_1.css') }}"
     />
     <style>
+      .exhibition-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        padding: 10px 0;
+        flex-direction: column;
+      }
+
+      .action-btn {
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 90px;
+        max-height: 50px;
+        gap: 6px;
+      }
+
+      /* Кнопка редактирования */
+      .edit-btn {
+        background-color: #4a90e2;
+        color: white;
+      }
+
+      .edit-btn:hover {
+        background-color: #3a7bc8;
+        box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3);
+      }
+
+      /* Кнопка удаления */
+      .delete-btn {
+        background-color: #f44336;
+        color: white;
+      }
+
+      .delete-btn:hover {
+        background-color: #d32f2f;
+        box-shadow: 0 2px 5px rgba(244, 67, 54, 0.3);
+      }
+
+      /* Иконки для кнопок */
+      .action-btn svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
+      }
+
+      /* Адаптация для мобильных */
+      @media (max-width: 768px) {
+        .exhibition-actions {
+          flex-direction: column;
+        }
+
+        .action-btn {
+          width: 100%;
+        }
+      }
       /* Базовые стили страницы */
       body {
         font-family: Arial, sans-serif;
@@ -231,12 +293,22 @@
                 }</p>
               </div>
             </div>
-            <button class="btn" onclick="openEditModal(${
-              exhibition.id
-            })">Изменить данные выставки</button>
-            <button class="btn" onclick="deleteExhibition(${
-              exhibition.id
-            })">Delete</button>
+            <div class="exhibition-actions">
+  <button class="action-btn edit-btn" onclick="openEditModal(${exhibition.id})">
+    <svg viewBox="0 0 24 24">
+      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+    </svg>
+    Изменить
+  </button>
+  <button class="action-btn delete-btn" onclick="deleteExhibition(${
+    exhibition.id
+  })">
+    <svg viewBox="0 0 24 24">
+      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+    </svg>
+    Удалить
+  </button>
+</div>
           </div>
         `;
           const h3 = div.querySelector(".exhibition__title h3");

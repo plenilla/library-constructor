@@ -4,6 +4,46 @@
     <meta charset="UTF-8">
     <title>Детали выставки</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style_1.css') }}">
+    <style>
+        /* Дополнительные стили для страницы деталей */
+        .exhibition-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .exhibition-header img {
+            max-width: 300px;
+            display: block;
+            margin: 0 auto;
+        }
+        .section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        .content {
+            margin-left: 20px;
+            padding: 10px 0;
+        }
+        .book {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .book img {
+            max-width: 100px;
+            float: left;
+            margin-right: 10px;
+        }
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+    </style>
 </head>
 <body>
     <div id="main__content" class="main">
@@ -11,127 +51,140 @@
     </div>
 
     <script>
-        const API_URL = '/v2';
+        const API_BASE = "/v2";
 
-        // Извлекаем ID выставки из URL (предполагается, что ID находится в конце URL)
-        function getExhibitionIdFromUrl() {
-            const parts = window.location.pathname.split('/');
-            return parts[parts.length - 1] || parts[parts.length - 2];
+        // Получение ID выставки из URL
+        function getExhibitionId() {
+            const path = window.location.pathname;
+            const idMatch = path.match(/\/(\d+)\/?$/);
+            return idMatch ? idMatch[1] : null;
         }
 
-        // Запрашиваем детали выставки
-        async function loadExhibitionDetail() {
-            const exhibitionId = getExhibitionIdFromUrl();
-            const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}`);
-            if (!response.ok) {
-                throw new Error('Не удалось получить данные выставки');
-            }
-            return await response.json();
-        }
-
-        // Запрашиваем список разделов выставки (без вложенного содержимого)
-        async function loadExhibitionSections() {
-            const exhibitionId = getExhibitionIdFromUrl();
-            const response = await fetch(`${API_URL}/exhibitions/${exhibitionId}/sections/`);
-            if (!response.ok) {
-                throw new Error('Не удалось получить данные разделов');
-            }
-            return await response.json();
-        }
-
-        // Запрашиваем содержимое конкретного раздела
-        async function loadSectionContent(sectionId) {
-            const response = await fetch(`${API_URL}/sections/${sectionId}/content/`);
-            if (!response.ok) {
-                throw new Error('Не удалось получить данные контент-блоков');
-            }
-            return await response.json();
-        }
-
-        // Отображаем данные на странице
-        async function renderExhibitionDetail() {
-            const container = document.getElementById('exhibitionDetail');
-
+        // Загрузка данных с обработкой ошибок
+        async function fetchData(url) {
             try {
-                // Загружаем и отображаем информацию о выставке
-                const exhibition = await loadExhibitionDetail();
-                container.innerHTML = `
-                    <div class="exhibition-header-detail">
-                        <img src="${exhibition.image}" alt="${exhibition.title}">
-                        <div class="exhibition-title-detail">
-                            <h1>${exhibition.title}</h1>
-                            <p>${exhibition.description || ''}</p>
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        }
+
+        // Загрузка данных выставки
+        async function loadExhibition() {
+            const exhibitionId = getExhibitionId();
+            if (!exhibitionId) throw new Error("Неверный ID выставки");
+            return await fetchData(`${API_BASE}/exhibitions/${exhibitionId}`);
+        }
+
+        // Загрузка разделов с контентом
+        async function loadSectionsWithContent(exhibitionId) {
+            const sections = await fetchData(`${API_BASE}/exhibitions/${exhibitionId}/sections/`);
+            
+            return await Promise.all(
+                sections.map(async section => {
+                    const content = await fetchData(`${API_BASE}/sections/${section.id}/content/`);
+                    
+                    // Загрузка данных книг для книжных блоков
+                    const enhancedContent = await Promise.all(
+                        content.map(async block => {
+                            if (block.type === 'book') {
+                                try {
+                                    const books = await fetchData(`${API_BASE}/content/${block.id}/books/`);
+                                    block.book = books[0] || null;
+                                } catch (error) {
+                                    console.error('Error loading book:', error);
+                                    block.book = null;
+                                }
+                            }
+                            return block;
+                        })
+                    );
+                    
+                    return { ...section, content: enhancedContent };
+                })
+            );
+        }
+
+        // Рендер контент-блоков
+        function renderContent(block) {
+            if (block.type === 'text') {
+                return `
+                    <div class="content">
+                        <p>${block.text_content}</p>
+                    </div>
+                `;
+            }
+
+            if (block.type === 'book' && block.book) {
+                return `
+                    <div class="book-card">
+                        <img src="${block.book.image_url}" alt="${block.book.title}">
+                        <div class="book-info">
+                            <h3 class="book-title">${block.book.title}</h3>
+                            <p class="book-author">${block.book.author || 'Автор не указан'}</p>
+                            <div class="book-annotation">
+                                ${block.book.annotation || 'Описание отсутствует'}
+                            </div>
                         </div>
                     </div>
                 `;
+            }
 
-                // Загружаем разделы выставки
-                const sections = await loadExhibitionSections();
-                if (sections && sections.length > 0) {
-                    // Создаем контейнер для разделов
+            return '<div class="error-box">Ошибка загрузки контента</div>';
+        }
+
+        // Основная функция рендеринга
+        async function renderPage() {
+            const container = document.getElementById('exhibitionDetail');
+            container.innerHTML = '<div class="loader">Загрузка выставки...</div>';
+
+            try {
+                // Загрузка основных данных
+                const exhibition = await loadExhibition();
+                const sections = await loadSectionsWithContent(exhibition.id);
+
+                // Рендер шапки выставки
+                container.innerHTML = `
+                    <div class="exhibition-header">
+                        <h1>${exhibition.title}</h1>
+                        <img src="${exhibition.image}" alt="${exhibition.title}">
+                        <p>${exhibition.description || ''}</p>
+                    </div>
+                `;
+
+                // Рендер разделов
+                if (sections.length > 0) {
                     const sectionsContainer = document.createElement('div');
-
-                    // Перебираем разделы последовательно
-                    for (const section of sections) {
-                        const sectionContainer = document.createElement('div');
-                        sectionContainer.className = 'section';
-                        sectionContainer.innerHTML = `<h2>${section.title}</h2>`;
-
-                        // Загружаем контент-блоки для данного раздела
-                        const contentBlocks = await loadSectionContent(section.id);
-                        if (contentBlocks && contentBlocks.length > 0) {
-                            contentBlocks.forEach(block => {
-                                let blockHTML = '';
-                                if (block.type === 'text') {
-                                    blockHTML = `<div class="content"><p>${block.text_content}</p></div>`;
-                                } else if (block.type === 'book' && block.book) {
-                                    blockHTML = `
-                                        <div class="content book clearfix">
-                                            <img src="${block.book.image_url}" alt="${block.book.title}">
-                                            <div>
-                                                <h3>${block.book.title}</h3>
-                                                <p>${block.book.annotations || ''}</p>
-                                            </div>
-                                        </div>`;
-                                }
-                                sectionContainer.innerHTML += blockHTML;
-                            });
-                        } else {
-                            sectionContainer.innerHTML += `<div class="content"><p>Нет содержимого</p></div>`;
-                        }
-
-                        // Добавляем раздел в контейнер разделов
-                        sectionsContainer.appendChild(sectionContainer);
-                    }
-
-                    // Добавляем разделы в общий контейнер
+                    sections.forEach(section => {
+                        const sectionDiv = document.createElement('div');
+                        sectionDiv.className = 'section';
+                        sectionDiv.innerHTML = `
+                            <h2>${section.title}</h2>
+                            ${section.content.map(renderContent).join('')}
+                        `;
+                        sectionsContainer.appendChild(sectionDiv);
+                    });
                     container.appendChild(sectionsContainer);
                 } else {
-                    container.innerHTML += `<p>Нет разделов для этой выставки.</p>`;
+                    container.innerHTML += '<p>Нет доступных разделов</p>';
                 }
+
             } catch (error) {
-                console.error(error);
-                container.innerHTML = `<p>Ошибка загрузки данных.</p>`;
+                console.error('Render error:', error);
+                container.innerHTML = `
+                    <div class="error-box">
+                        <h3>Ошибка загрузки данных</h3>
+                        <p>${error.message}</p>
+                        <button onclick="window.location.reload()">Попробовать снова</button>
+                    </div>
+                `;
             }
         }
 
         renderExhibitionDetail();
-        //отдельный js
-        document.addEventListener('DOMContentLoaded', function() {
-            const exhibitionBlock = document.querySelector('.exhibition-header-detail');
-            
-            // Для мобильных и ПК
-            exhibitionBlock.addEventListener('click', function() {
-                this.classList.toggle('active');
-            });
-        
-            // Скрываем при клике вне блока (опционально)
-            document.addEventListener('click', function(e) {
-                if (!exhibitionBlock.contains(e.target)) {
-                    exhibitionBlock.classList.remove('active');
-                }
-            });
-        });
     </script>
 </body>
 </html>
