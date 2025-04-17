@@ -299,20 +299,19 @@
 
               if (block.type === "book") {
                 // Делаем запрос с обработкой ошибок
-                const response = await fetch(`/v2/content/${block.id}/books/`);
-                if (!response.ok) throw new Error("Ошибка загрузки книг");
-
-                const books = await response.json();
-                const book = books[0] || null;
-
+                const response = await fetch(`/v2/content/${block.id}/book/${block.book_id}`);
+                if (!response.ok) throw new Error("Ошибка загрузки книги");
+                const book = await response.json();
                 // Проверяем наличие обязательных полей
                 if (!book) return '<div class="error">Книга не найдена</div>';
 
                 const safeImage = book.image_url || "/placeholder-book.jpg";
                 const safeTitle = book.title || "Без названия";
-                const safeAuthor = book.author ? `Автор: ${book.author}` : "";
+                const safeLibrary = book.library_description
+                  ? `Автор: ${book.library_description}`
+                  : "";
                 const safeAnnotation =
-                  book.annotation || "Описание отсутствует";
+                  book.annotations || "Описание отсутствует";
 
                 return `
           <div class="content-block" data-block-id="${block.id}">
@@ -320,7 +319,7 @@
               <img src="${safeImage}">
               <div class="book-info">
                 <h3 class="book-title">${safeTitle}</h3>
-                ${safeAuthor ? `<p class="book-author">${safeAuthor}</p>` : ""}
+                ${safeLibrary ? `<p class="book-author">${safeLibrary}</p>` : ""}
                 <div class="book-annotation">${safeAnnotation}</div>
               </div>
               <button onclick="handleDeleteContent(${block.id}, 'book', ${
@@ -443,7 +442,6 @@
 
       async function handleDeleteContent(
         contentId,
-        sectionsID,
         contentType,
         bookId = null
       ) {
@@ -458,8 +456,8 @@
             method = "DELETE";
           } else {
             // Используем DELETE вместо PATCH
-            endpoint = `/v2/sections/${sectionsID}/content/${contentId}`;
-            method = "DELETE";
+            endpoint = `/v2/content/${contentId}/book/${bookId}`;
+            method = "PATCH";
           }
 
           const response = await fetch(endpoint, {

@@ -12,7 +12,6 @@
             padding: 20px;
             background: #f8f9fa;
         }
-        
         .exhibition-header img {
             max-width: 100%;
             height: 400px;
@@ -20,7 +19,6 @@
             border-radius: 8px;
             margin: 20px 0;
         }
-
         .section {
             background: white;
             border-radius: 8px;
@@ -28,67 +26,78 @@
             margin-bottom: 2rem;
             padding: 20px;
         }
-
         .section h2 {
             color: #2c3e50;
             margin-bottom: 1rem;
         }
-
-        .content {
-            margin: 15px 0;
-        }
-
-        .book-card {
-            display: flex;
+        .section-content {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
-            padding: 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            background: white;
+            align-items: start;
         }
-
-        .book-card img {
-            width: 120px;
-            height: 180px;
-            object-fit: cover;
+        .content-text {
+            grid-column: span 4;
+            padding: 10px;
+            background: #fcfcfc;
             border-radius: 4px;
-        }
-
-        .book-info {
-            flex: 1;
-        }
-
-        .book-title {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            color: #34495e;
-        }
-
-        .book-author {
-            color: #7f8c8d;
-            margin-bottom: 0.5rem;
-        }
-
-        .book-annotation {
-            color: #2c3e50;
             line-height: 1.6;
         }
-
-        .loader {
-            text-align: center;
-            padding: 2rem;
-            font-size: 1.2rem;
-            color: #7f8c8d;
+        .book-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: transform 0.2s;
         }
-
-        .error-box {
-            background: #f8d7da;
-            color: #721c24;
+        .book-card:hover {
+            transform: translateY(-5px);
+        }
+        .book-card img {
+            width: 100%;
+            aspect-ratio: 2 / 3;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .book-info { text-align: center; }
+        .book-title { font-size: 1rem; margin-bottom: 0.5rem; color: #34495e; }
+        .book-author { font-size: 0.875rem; color: #7f8c8d; }
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px; /* добавляем отступы */
+        }
+        .modal-content {
+            background: white;
             padding: 20px;
             border-radius: 8px;
-            margin: 20px;
-            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+            /* Позволяем контенту расти по содержимому до лимита */
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        .modal .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -97,103 +106,72 @@
         <div id="exhibitionDetail"></div>
     </div>
 
+    <!-- Модальное окно книги -->
+    <div id="bookDetailModal" class="modal" onclick="if(event.target===this) closeBookModal();">
+        <div class="modal-content">
+            <span class="close" onclick="closeBookModal()">&times;</span>
+            <h2 id="modalTitle"></h2>
+            <img id="modalImage" src="" alt="" style="width:100%; height:auto; object-fit:cover; margin:15px 0;" />
+            <p id="modalLibrary"></p>
+            <p id="modalAnnotation"></p>
+        </div>
+    </div>
+
     <script>
         const API_BASE = "/v2";
-
-        // Получение ID выставки из URL
         function getExhibitionId() {
             const path = window.location.pathname;
-            const idMatch = path.match(/\/(\d+)\/?$/);
-            return idMatch ? idMatch[1] : null;
+            const match = path.match(/\/(\d+)\/?.*$/);
+            return match ? match[1] : null;
         }
-
-        // Загрузка данных с обработкой ошибок
         async function fetchData(url) {
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                return await response.json();
-            } catch (error) {
-                console.error('Fetch error:', error);
-                throw error;
-            }
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            return res.json();
         }
-
-        // Загрузка данных выставки
         async function loadExhibition() {
-            const exhibitionId = getExhibitionId();
-            if (!exhibitionId) throw new Error("Неверный ID выставки");
-            return await fetchData(`${API_BASE}/exhibitions/${exhibitionId}`);
+            const id = getExhibitionId();
+            if (!id) throw new Error("Неверный ID выставки");
+            return fetchData(`${API_BASE}/exhibitions/${id}`);
         }
-
-        // Загрузка разделов с контентом
         async function loadSectionsWithContent(exhibitionId) {
             const sections = await fetchData(`${API_BASE}/exhibitions/${exhibitionId}/sections/`);
-            
-            return await Promise.all(
-                sections.map(async section => {
-                    const content = await fetchData(`${API_BASE}/sections/${section.id}/content/`);
-                    
-                    // Загрузка данных книг для книжных блоков
-                    const enhancedContent = await Promise.all(
-                        content.map(async block => {
-                            if (block.type === 'book') {
-                                try {
-                                    const books = await fetchData(`${API_BASE}/content/${block.id}/books/`);
-                                    block.book = books[0] || null;
-                                } catch (error) {
-                                    console.error('Error loading book:', error);
-                                    block.book = null;
-                                }
-                            }
-                            return block;
-                        })
-                    );
-                    
-                    return { ...section, content: enhancedContent };
-                })
-            );
+            return Promise.all(sections.map(async section => {
+                const content = await fetchData(`${API_BASE}/sections/${section.id}/content/`);
+                const enhanced = await Promise.all(content.map(async block => {
+                    if (block.type === 'book' && block.book_id) {
+                        try {
+                            const book = await fetchData(
+                                `${API_BASE}/content/${block.id}/book/${block.book_id}`
+                            );
+                            block.book = book;
+                        } catch (e) {
+                            console.error('Error loading book:', e);
+                            block.book = null;
+                        }
+                    }
+                    return block;
+                }));
+                return { ...section, content: enhanced };
+            }));
         }
-
-        // Рендер контент-блоков
-        function renderContent(block) {
-            if (block.type === 'text') {
-                return `
-                    <div class="content">
-                        <p>${block.text_content}</p>
-                    </div>
-                `;
-            }
-
-            if (block.type === 'book' && block.book) {
-                return `
-                    <div class="book-card">
-                        <img src="${block.book.image_url}" alt="${block.book.title}">
-                        <div class="book-info">
-                            <h3 class="book-title">${block.book.title}</h3>
-                            <p class="book-author">${block.book.author || 'Автор не указан'}</p>
-                            <div class="book-annotation">
-                                ${block.book.annotation || 'Описание отсутствует'}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            return '<div class="error-box">Ошибка загрузки контента</div>';
+        function openBookModal(elem) {
+            document.getElementById('modalTitle').textContent = elem.dataset.title;
+            document.getElementById('modalImage').src = elem.dataset.imageUrl;
+            document.getElementById('modalImage').alt = elem.dataset.title;
+            document.getElementById('modalLibrary').textContent = elem.dataset.libraryDescription;
+            document.getElementById('modalAnnotation').textContent = elem.dataset.annotations;
+            document.getElementById('bookDetailModal').style.display = 'flex';
         }
-
-        // Основная функция рендеринга
+        function closeBookModal() {
+            document.getElementById('bookDetailModal').style.display = 'none';
+        }
         async function renderPage() {
             const container = document.getElementById('exhibitionDetail');
-            container.innerHTML = '<div class="loader">Загрузка выставки...</div>';
-
+            container.innerHTML = '<div class="loader">Загрузка...</div>';
             try {
-                // Загрузка основных данных
                 const exhibition = await loadExhibition();
                 const sections = await loadSectionsWithContent(exhibition.id);
-
-                // Рендер шапки выставки
                 container.innerHTML = `
                     <div class="exhibition-header">
                         <h1>${exhibition.title}</h1>
@@ -201,36 +179,42 @@
                         ${exhibition.description ? `<p>${exhibition.description}</p>` : ''}
                     </div>
                 `;
-
-                // Рендер разделов
-                if (sections.length > 0) {
-                    const sectionsContainer = document.createElement('div');
+                if (sections.length) {
                     sections.forEach(section => {
-                        const sectionDiv = document.createElement('div');
-                        sectionDiv.className = 'section';
-                        sectionDiv.innerHTML = `
-                            <h2>${section.title}</h2>
-                            ${section.content.map(renderContent).join('')}
-                        `;
-                        sectionsContainer.appendChild(sectionDiv);
+                        const sec = document.createElement('div');
+                        sec.className = 'section';
+                        let html = `<h2>${section.title}</h2><div class="section-content">`;
+                        section.content.forEach(block => {
+                            if (block.type === 'book' && block.book) {
+                                html += `
+                                    <div class="book-card" 
+                                         data-title="${block.book.title}" 
+                                         data-image-url="${block.book.image_url || ''}" 
+                                         data-library-description="${block.book.library_description || ''}" 
+                                         data-annotations="${block.book.annotations || ''}" 
+                                         onclick="openBookModal(this)">
+                                        <img src="${block.book.image_url || '/placeholder-book.jpg'}" alt="${block.book.title}">
+                                        <div class="book-info">
+                                            <h3 class="book-title">${block.book.title}</h3>
+                                            <p class="book-author">${block.book.library_description || ''}</p>
+                                        </div>
+                                    </div>`;
+                            } else if (block.type === 'text') {
+                                html += `<div class="content-text"><p>${block.text_content}</p></div>`;
+                            }
+                        });
+                        html += '</div>';
+                        sec.innerHTML = html;
+                        container.appendChild(sec);
                     });
-                    container.appendChild(sectionsContainer);
                 } else {
-                    container.innerHTML += '<p>Нет доступных разделов</p>';
+                    container.innerHTML += '<p>Нет разделов</p>';
                 }
-
-            } catch (error) {
-                console.error('Render error:', error);
-                container.innerHTML = `
-                    <div class="error-box">
-                        <h3>Ошибка загрузки данных</h3>
-                        <p>${error.message}</p>
-                        <button onclick="window.location.reload()">Попробовать снова</button>
-                    </div>
-                `;
+            } catch (err) {
+                console.error('Render error:', err);
+                container.innerHTML = `<div class="error-box"><h3>Ошибка</h3><p>${err.message}</p><button onclick="window.location.reload()">Повторить</button></div>`;
             }
         }
-        // Инициализация
         document.addEventListener('DOMContentLoaded', renderPage);
     </script>
 </body>

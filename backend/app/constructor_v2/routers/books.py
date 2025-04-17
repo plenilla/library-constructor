@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from starlette.status import HTTP_404_NOT_FOUND
@@ -50,18 +50,16 @@ async def get_all_content_book(
     return books
 
 
-@router.patch("/book/{book_id}", response_model=ContentBlockResponse)
+@router.patch("/book/{book_id}", response_model=None)
 async def unlink_book_from_content(
-    content_id: int, 
-    book_id: int, 
-    db: AsyncSession = Depends(get_db)
+    content_id: int, book_id: int, db: AsyncSession = Depends(get_db)
 ):
-    # 1. Находим контент-блок с указанными ID и привязанной книгой
+    # 1. Проверка, существует ли блок с таким ID и привязанной книгой
     result = await db.execute(
         select(ContentBlock).where(
             (ContentBlock.id == content_id)
             & (ContentBlock.book_id == book_id)
-            & (ContentBlock.type == "book")  # Добавляем проверку типа
+            & (ContentBlock.type == "book")
         )
     )
     content_block = result.scalar_one_or_none()
@@ -71,14 +69,44 @@ async def unlink_book_from_content(
             status_code=404, detail="Content block not found or not linked to this book"
         )
 
-    # 2. Обновляем значение
-    content_block.book_id = None
+    # 2. Удаляем контент-блок
+    await db.execute(delete(ContentBlock).where(ContentBlock.id == content_id))
 
     try:
         await db.commit()
-        await db.refresh(content_block)  # Обновляем объект
     except Exception as e:
         await db.rollback()
         raise HTTPException(500, f"Database error: {str(e)}")
 
-    return content_block
+    return {"detail": "Content block deleted"}
+
+
+@router.get("/book/{book_id}", response_model=BookResponse)
+async def get_content_book_by_id(
+    content_id: int, book_id: int, db: AsyncSession = Depends(get_db)
+):
+    """
+    Получить книгу по её ID, только если она привязана к данному контент-блоку.
+    """
+    # проверяем, что у контент-блока есть именно этот book_id
+    result = await db.execute(
+        select(ContentBlock).where(
+            ContentBlock.id == content_id,
+            ContentBlock.type == "book",
+            ContentBlock.book_id == book_id,
+        )
+    )
+    content = result.scalar_one_or_none()
+    if not content:
+        raise HTTPException(
+            status_code=HTTP_404_NOT_FOUND,
+            detail="Content block not found or not linked to this book",
+        )
+
+    # возвращаем книгу
+    result_book = await db.execute(select(Book).where(Book.id == book_id))
+    book = result_book.scalar_one_or_none()
+    if not book:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Book not found")
+
+    return book
