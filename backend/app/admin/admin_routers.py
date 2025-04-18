@@ -69,7 +69,7 @@ async def update_user(user_id: int, update: UserUpdate, db: AsyncSession = Depen
         raise HTTPException(status_code=500, detail="Ошибка сервера при обновлении пользователя")
 
 # Endpoint для удаления пользователя
-@router.delete("/api/users/{user_id}", response_class=JSONResponse)
+@router.delete("/dashboard/users/{user_id}", response_class=JSONResponse)
 async def delete_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     check_admin(request)
     result = await db.execute(select(User).where(User.id == user_id))
