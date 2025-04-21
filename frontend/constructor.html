@@ -290,7 +290,7 @@
                 return `
           <div class="content-block" data-block-id="${block.id}">
             <p>${block.text_content}</p>
-            <button onclick="handleDeleteContent(${block.id}, 'text')" 
+            <button onclick="handleDeleteContent(${block.id}, ${sectionId}, 'text')" 
                     class="btn btn-danger">
               Удалить
             </button>
@@ -299,7 +299,9 @@
 
               if (block.type === "book") {
                 // Делаем запрос с обработкой ошибок
-                const response = await fetch(`/v2/content/${block.id}/book/${block.book_id}`);
+                const response = await fetch(
+                  `/v2/content/${block.id}/book/${block.book_id}`
+                );
                 if (!response.ok) throw new Error("Ошибка загрузки книги");
                 const book = await response.json();
                 // Проверяем наличие обязательных полей
@@ -319,15 +321,17 @@
               <img src="${safeImage}">
               <div class="book-info">
                 <h3 class="book-title">${safeTitle}</h3>
-                ${safeLibrary ? `<p class="book-author">${safeLibrary}</p>` : ""}
+                ${
+                  safeLibrary ? `<p class="book-author">${safeLibrary}</p>` : ""
+                }
                 <div class="book-annotation">${safeAnnotation}</div>
               </div>
-              <button onclick="handleDeleteContent(${block.id}, 'book', ${
-                  book.id
-                })" 
-                      class="btn btn-danger">
-                Удалить
-              </button>
+              <button onclick="handleDeleteContent(${
+                block.id
+              }, ${sectionId}, 'book', ${book.id})" 
+            class="btn btn-danger">
+      Удалить
+    </button>
             </div>
           </div>`;
               }
@@ -422,27 +426,40 @@
       // Показать модальное окно контента
       async function showContentModal(sectionId) {
         const form = document.getElementById("create-content-form");
-        form.reset(); // Очищаем все поля
-        document.querySelector(".book-content").style.display = "none"; // Скрываем блок книг
-        document.querySelector(".text-content").style.display = "block"; // Показываем текст
-        document.querySelector('select[name="type"]').value = "text"; // Сбрасываем выбор типа
+        form.reset();
+        document.querySelector(".book-content").style.display = "none";
+        document.querySelector(".text-content").style.display = "block";
+        document.querySelector('select[name="type"]').value = "text";
 
-        const booksResponse = await fetch("/library/books");
-        const books = await booksResponse.json();
-        const bookSelect = document.querySelector(
-          '#create-content-form select[name="book_id"]'
-        );
-        bookSelect.innerHTML = books
-          .map((book) => `<option value="${book.id}">${book.title}</option>`)
-          .join("");
-        document.getElementById("create-content-form").dataset.sectionId =
-          sectionId;
-        showModal("create-content-modal");
+        try {
+          const booksResponse = await fetch("/library/books");
+          if (!booksResponse.ok) throw new Error("Ошибка загрузки книг");
+
+          const booksData = await booksResponse.json();
+          const books = Array.isArray(booksData)
+            ? booksData
+            : booksData?.items || [];
+
+          const bookSelect = document.querySelector(
+            '#create-content-form select[name="book_id"]'
+          );
+          bookSelect.innerHTML = books
+            .map((book) => `<option value="${book.id}">${book.title}</option>`)
+            .join("");
+
+          document.getElementById("create-content-form").dataset.sectionId =
+            sectionId;
+          showModal("create-content-modal");
+        } catch (error) {
+          console.error("Error loading books:", error);
+          alert("Не удалось загрузить список книг");
+        }
       }
 
       async function handleDeleteContent(
         contentId,
-        contentType,
+        sectionid,
+        contentType = "TEXT",
         bookId = null
       ) {
         const isConfirmed = confirm("Вы уверены?");
@@ -451,11 +468,11 @@
         try {
           let endpoint, method;
 
-          if (contentType === "text") {
-            endpoint = `/v2/sections/${sectionsID}/content/${contentId}`;
+          // Делим ветки по типу контента (приводим к верхнему регистру)
+          if (contentType.toUpperCase() === "TEXT") {
+            endpoint = `/v2/sections/${sectionid}/content/${contentId}`;
             method = "DELETE";
           } else {
-            // Используем DELETE вместо PATCH
             endpoint = `/v2/content/${contentId}/book/${bookId}`;
             method = "PATCH";
           }

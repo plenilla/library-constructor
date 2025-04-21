@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+
+WORKDIR /app/project
+
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+
+COPY .env .env
+COPY . .
+
+CMD ["python", "-m", "app.main"]
