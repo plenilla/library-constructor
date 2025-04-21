@@ -51,7 +51,9 @@ setup_middleware(app)
 # Подключаем папку static
 app.mount(
     "/static",
-    StaticFiles(directory=os.path.join(BASE_DIR, "..", "..", "frontend", "static")),
+    StaticFiles(
+        directory=os.path.join(BASE_DIR, "..", "..", "..", "frontend", "static")
+    ),
     name="static",
 )
 
