@@ -15,8 +15,8 @@ from .designer import (
 from .users.api import router as users_router
 from .users.admin import router as admin_router
 from .core.pages import router as page_router
-from .books.api import router as book_router
-from .books.api2 import router as books_router
+from .books.api import router_library as book_router
+from .books.api import router as books_router
 
 
 @asynccontextmanager
