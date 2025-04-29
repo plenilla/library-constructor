@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, delete, and_
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select, delete, and_, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
 from typing import Optional, List
 import uuid
 from datetime import datetime, timezone
@@ -13,6 +14,7 @@ from .models import (
 from .schemas import (
     ExhibitionBase,
     ExhibitionResponse,
+    PaginatedResponse
 )
 from ..sections.models import Section
 
@@ -42,6 +44,44 @@ async def get_all_exhibition(
     result = await db.execute(query)
     exhibitions = result.scalars().all()
     return exhibitions
+
+@router.get("/exhibitionsPage/", response_model=PaginatedResponse[ExhibitionResponse])
+async def get_page_exhibition(
+    published: Optional[bool] = Query(None), 
+    page: int = Query(1, gt=0),
+    size: int = Query(10, gt=0, le=100),
+    db: AsyncSession = Depends(get_db)
+):
+    offset = (page - 1) * size
+    
+    # Базовый запрос для данных
+    data_query = select(Exhibition)
+    if published is not None:
+        data_query = data_query.where(Exhibition.is_published == published)
+    
+    # Запрос для подсчета общего количества
+    count_query = select(func.count()).select_from(Exhibition)
+    if published is not None:
+        count_query = count_query.where(Exhibition.is_published == published)
+    
+    # Выполняем оба запроса параллельно
+    data_result, count_result = await asyncio.gather(
+        db.execute(data_query.offset(offset).limit(size)),
+        db.execute(count_query)
+    )
+    
+    items = data_result.scalars().all()
+    total = count_result.scalar_one()
+    
+    total_pages = (total + size - 1) // size if total > 0 else 1
+    
+    return {
+        "items": items,
+        "page": page,
+        "size": size,
+        "total": total,
+        "total_pages": total_pages,
+    }
 
 
 @router.get("/exhibitions/{exhibition_id}", response_model=ExhibitionResponse)

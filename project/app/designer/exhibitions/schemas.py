@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Generic, TypeVar
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator, Field
+from pydantic.generics import GenericModel
 from fastapi import UploadFile, Form, File
 from datetime import datetime
 
@@ -19,6 +20,14 @@ class ExhibitionResponse(BaseModel):
     published_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
+T = TypeVar("T")
+
+class PaginatedResponse(GenericModel, Generic[T]):
+    items: List[T]
+    page: int
+    size: int
+    total: int
+    total_pages: int
 
 class ExhibitionBase(BaseModel):
     title: str
