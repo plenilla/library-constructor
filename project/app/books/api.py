@@ -29,10 +29,18 @@ router_library = APIRouter(prefix="/library")
 async def get_all_books(
     db: AsyncSession = Depends(get_db),
     author_id: Optional[int] = Query(None),
-    genre_id: Optional[int] = Query(None)
+    genre_id: Optional[int] = Query(None),
+    sort_order: Optional[str] = Query(None)
 ):
     """
     Получить отфильтрованный список книг
+    Ввод
+      db:- база данных
+      author_id: ID автора
+      genre_id: ID жанра
+      sort_order: сортировка по алфавиту "asc", в обратном порядке "desc"
+    Вывод
+      List[BookResponse] - список книг
     """
     query = select(Book).options(
         selectinload(Book.authors),
@@ -45,6 +53,11 @@ async def get_all_books(
     if genre_id:
         query = query.join(Book.genres).filter(Genre.id == genre_id)
 
+    if sort_order == "asc":
+        query = query.order_by(Book.title.asc())
+    elif sort_order == "desc":
+        query = query.order_by(Book.title.desc())
+    
     result = await db.execute(query)
     books = result.scalars().unique().all()
     return books
