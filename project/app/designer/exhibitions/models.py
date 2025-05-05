@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     CheckConstraint,
+    String,
 )
 import enum
 from sqlalchemy.orm import relationship
@@ -18,6 +19,7 @@ from ...books.models import Book
 
 class Exhibition(Base):
     title = Column(Text, nullable=False)
+    slug = Column(String(255), unique=True, index=True, nullable=False)
     is_published = Column(Boolean, default=True)
     image = Column(Text, nullable=True)
     description = Column(Text, nullable=True)

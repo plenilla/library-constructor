@@ -59,3 +59,12 @@ class ExhibitionBase(BaseModel):
             is_published=is_published,
             image=image,
         )
+
+class ExhibitionOut(BaseModel):
+    id: int
+    title: str
+    slug: str
+    is_published: bool
+    image: Optional[str] = None
+    description: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)

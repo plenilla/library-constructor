@@ -6,6 +6,7 @@ import asyncio
 from typing import Optional, List
 import uuid
 from datetime import datetime, timezone
+from slugify import slugify
 
 from ...core import MEDIA_DIR, get_db
 from .models import (
@@ -14,7 +15,8 @@ from .models import (
 from .schemas import (
     ExhibitionBase,
     ExhibitionResponse,
-    PaginatedResponse
+    PaginatedResponse,
+    ExhibitionOut,
 )
 from ..sections.models import Section
 
@@ -84,6 +86,24 @@ async def get_page_exhibition(
     }
 
 
+@router.get("exhibitions/{slug}", response_model=ExhibitionOut)
+async def get_exhibiton_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
+    """Получить конкрентую выставку с помощью slug
+
+    Args:
+        slug (str): Слаг выставки
+        db (AsyncSession, optional): Сессия базы данных.
+
+    Raises:
+        HTTPException: Выводим слаг выставки
+    """
+    result = await db.execute(select(Exhibition).filter(Exhibition.slug == slug))
+    exhibition = result.scalar_one_or_none()
+    if exhibition is None:
+        raise HTTPException(status_code=404, detail="Exhibition not found")
+
+   
+
 @router.get("/exhibitions/{exhibition_id}", response_model=ExhibitionResponse)
 async def get_exhibition(exhibition_id: int, db: AsyncSession = Depends(get_db)):
     """
@@ -104,7 +124,7 @@ async def get_exhibition(exhibition_id: int, db: AsyncSession = Depends(get_db))
     return exhibition
 
 
-@router.post("/exhibitions/", response_model=ExhibitionResponse)
+@router.post("/exhibitions/", response_model=ExhibitionOut)
 async def create_new_exhibition(
     exhibition_data: ExhibitionBase = Depends(ExhibitionBase.as_form),
     db: AsyncSession = Depends(get_db),
@@ -117,8 +137,17 @@ async def create_new_exhibition(
         db (AsyncSession): Сессия базы данных.
 
     Returns:
-        ExhibitionResponse: Созданная выставка.
+        ExhibitionOut: Созданная выставка.
     """
+    slugTitle = slugify(exhibition_data.title)
+    
+    # проверка уникальности слага
+    result = await db.execute(select(Exhibition).filter(Exhibition.slug == slugTitle))
+    exitSlug = result.scalar_one_or_none()
+    if exitSlug:
+        raise HTTPException(status_code=400, detail="Exhibition with this slug already exists.")
+    
+    # даем название картинкам
     file_ext = exhibition_data.image.filename.split(".")[-1]
     filename = f"{uuid.uuid4()}.{file_ext}"
     file_path = MEDIA_DIR / filename
@@ -137,6 +166,7 @@ async def create_new_exhibition(
 
     db_exhibition = Exhibition(
         title=exhibition_data.title,
+        slug=slugTitle,
         description=exhibition_data.description,
         is_published=exhibition_data.is_published,
         image=f"/static/picture/{filename}",
@@ -147,6 +177,64 @@ async def create_new_exhibition(
     await db.commit()
     await db.refresh(db_exhibition)
     return db_exhibition
+
+
+
+@router.put("/exhibitions/{slug}", response_model=ExhibitionOut)
+async def update_exhibition_by_slug(
+    slug: str,
+    exhibition_data: ExhibitionBase = Depends(ExhibitionBase.as_form),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Обновить существующую выставку.
+
+    Args:
+        exhibition_id (int): Идентификатор выставки для обновления.
+        exhibition_data (ExhibitionBase): Данные для обновления выставки.
+        db (AsyncSession): Сессия базы данных.
+
+    Returns:
+        ExhibitionResponse: Обновлённая выставка.
+    """
+    # Получаем существующую выставку из базы данных
+    result = await db.execute(select(Exhibition).where(Exhibition.slug == slug))
+    db_exhibition = result.scalar_one_or_none()
+    if not db_exhibition:
+        raise HTTPException(status_code=404, detail="Выставка не найдена")
+
+    # Если передан новый файл изображения, сохраняем его и обновляем путь
+    if exhibition_data.image:
+        try:
+            file_ext = exhibition_data.image.filename.split(".")[-1]
+            filename = f"{uuid.uuid4()}.{file_ext}"
+            file_path = MEDIA_DIR / filename
+
+            contents = await exhibition_data.image.read()
+            with open(file_path, "wb") as f:
+                f.write(contents)
+
+            db_exhibition.image = f"/static/picture/{filename}"
+        except Exception as e:
+            raise HTTPException(500, f"Ошибка загрузки файла: {e}")
+
+    # Обновляем текстовые поля и состояние публикации
+    db_exhibition.title = exhibition_data.title
+    db_exhibition.slug = exhibition_data.slug
+    db_exhibition.description = exhibition_data.description
+    db_exhibition.is_published = exhibition_data.is_published
+
+    # Обновляем published_at в зависимости от статуса публикации
+    if exhibition_data.is_published and not db_exhibition.published_at:
+        db_exhibition.published_at = datetime.now(timezone.utc)
+    elif not exhibition_data.is_published:
+        db_exhibition.published_at = None
+
+    db.add(db_exhibition)
+    await db.commit()
+    await db.refresh(db_exhibition)
+    return db_exhibition
+
 
 
 @router.put("/exhibitions/{exhibition_id}", response_model=ExhibitionResponse)

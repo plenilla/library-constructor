@@ -1,38 +1,66 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from typing import List
+from typing import List,Optional 
 import uuid
 import aiofiles
+import json
 
 from ..core import get_db, MEDIA_DIR, MAX_FILE_SIZE
 from .models import (
     Book,
+    Author,
+    Genre,
 )
 from .schemas import (
     BookCreate,
     BookResponse,
+    AuthorResponse,
+    GenreResponse,
 )
 
 
 router_library = APIRouter(prefix="/library")
 
 
+# Эндпоинты для фильтрации книг
 @router_library.get("/books/", response_model=List[BookResponse])
-async def get_all_books(db: AsyncSession = Depends(get_db)):
+async def get_all_books(
+    db: AsyncSession = Depends(get_db),
+    author_id: Optional[int] = Query(None),
+    genre_id: Optional[int] = Query(None)
+):
     """
-    Получить список всех книг.
-
-    Args:
-        db (AsyncSession): Сессия базы данных.
-
-    Returns:
-        List[BookResponse]: Список всех книг.
+    Получить отфильтрованный список книг
     """
-    result = await db.execute(select(Book))
-    sections = result.scalars().all()
-    return sections
+    query = select(Book).options(
+        selectinload(Book.authors),
+        selectinload(Book.genres)
+    )
+
+    if author_id:
+        query = query.join(Book.authors).filter(Author.id == author_id)
+    
+    if genre_id:
+        query = query.join(Book.genres).filter(Genre.id == genre_id)
+
+    result = await db.execute(query)
+    books = result.scalars().unique().all()
+    return books
+  
+  
+
+
+@router_library.get("/authors/", response_model=List[AuthorResponse])
+async def get_authors(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Author))
+    return result.scalars().all()
+
+@router_library.get("/genres/", response_model=List[GenreResponse])
+async def get_genres(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Genre))
+    return result.scalars().all()
 
 
 # Ручка для создания книги
@@ -41,50 +69,87 @@ async def create_book(
     book_data: BookCreate = Depends(BookCreate.as_form),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Создать новую книгу
+  """
+    Модель для создания книги
 
-    Args:
-        db (AsyncSession): Сессия базы данных.
-        title: Форма названия книги
-        description: Необезательная форма описания книги
-        bo: Форма библиографиеского описания книги
-        image: Форма загрузки изображения для книги
+    Пример корректного запроса:
+    {
+        "title": "Название книги",
+        "genre_ids": "1,2",     # ID жанров через запятую
+        "author_ids": "3",      # ID авторов через запятую
+        "image_url": "файл.jpg"
+    }
+  """
+  try:
+      # Чтение файла изображения
+      file_content = await book_data.image_url.read()
+      if len(file_content) > MAX_FILE_SIZE:
+          raise HTTPException(413, "File too large")
+      # Важно: сбросить позицию курсора файла для возможного повторного чтения
+      await book_data.image_url.seek(0)
+      
+      async with db.begin():
 
-    Returns:
-        BookResponse: Созданная книга
-    """
-    # Чтение файла изображения
-    file_content = await book_data.image_url.read()
-    if len(file_content) > MAX_FILE_SIZE:
-        raise HTTPException(413, "File too large")
-    # Важно: сбросить позицию курсора файла для возможного повторного чтения
-    await book_data.image_url.seek(0)
+        authors = []
+        for author_id in book_data.author_ids:
+            result = await db.execute(select(Author).where(Author.id == author_id))
+            author = result.scalar_one_or_none()
+            if not author:
+                raise HTTPException(400, detail=f"Author with id {author_id} not found")
+            authors.append(author)
 
-    # Генерация уникального имени файла
-    file_ext = book_data.image_url.filename.split(".")[-1]
-    filename = f"{uuid.uuid4()}.{file_ext}"
-    file_path = MEDIA_DIR / filename
+        # Проверка существования жанров
+        genres = []
+        for genre_id in book_data.genre_ids:
+            result = await db.execute(select(Genre).where(Genre.id == genre_id))
+            genre = result.scalar_one_or_none()
+            if not genre:
+                raise HTTPException(400, detail=f"Genre with id {genre_id} not found")
+            genres.append(genre)
+        
+        # Генерация уникального имени файла
+        file_ext = book_data.image_url.filename.split(".")[-1]
+        filename = f"{uuid.uuid4()}.{file_ext}"
+        file_path = MEDIA_DIR / filename
 
-    # Сохранение файла
-    try:
-        async with aiofiles.open(file_path, "wb") as out_file:
-            await out_file.write(file_content)
-    except Exception as e:
-        raise HTTPException(500, f"Failed to save image: {str(e)}")
+        # Сохранение файла
+        try:
+            async with aiofiles.open(file_path, "wb") as out_file:
+                await out_file.write(file_content)
+        except Exception as e:
+            raise HTTPException(500, f"Failed to save image: {str(e)}")
 
-    # Создание записи в БД
-    new_book = Book(
-        title=book_data.title,
-        annotations=book_data.annotations,
-        library_description=book_data.library_description,
-        image_url=f"/static/picture/{filename}",
-    )
 
-    db.add(new_book)
-    await db.commit()
-    await db.refresh(new_book)
-    return new_book
+      # Создание записи в БД
+      new_book = Book(
+          title=book_data.title,
+          annotations=book_data.annotations,
+          library_description=book_data.library_description,
+          image_url=f"/static/picture/{filename}",
+          year_of_publication=book_data.year_of_publication,
+          authors=authors,
+          genres=genres,
+      )
+
+      db.add(new_book)
+      await db.commit()
+      
+      await db.refresh(new_book, ["authors", "genres"])
+        
+      result = await db.execute(
+        select(Book)
+          .options(
+            selectinload(Book.authors),
+            selectinload(Book.genres)
+            )
+            .where(Book.id == new_book.id)
+        )
+      book = result.scalar_one()
+        
+      return book
+  except json.JSONDecodeError:
+    await db.rollback()
+    raise HTTPException(400,"Invalid")
 
 
 @router_library.delete("/books/{book_id}")
