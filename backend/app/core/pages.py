@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 import os
 
-from .db_helper import get_db
+from .database import get_db
 
 
 router = APIRouter()

@@ -4,19 +4,20 @@ import os
 from contextlib import asynccontextmanager
 from .core.pages import BASE_DIR
 from .core.middleware import setup_middleware
-from .core.db_helper import db_helper, get_db
-from .core import Base
+from .core.database import db_helper, get_db
+from .models import Base
 
-from .designer import (
+from .api.v2 import (
     exhibitions_router,
     sections_router,
     contents_router,
+    users_router,
+    admins_router,
+    library_books_router,
+    books_router,
 )
-from .users.api import router as users_router
-from .users.api import admin_router
+
 from .core.pages import router as page_router
-from .books.api import router_library as book_router
-from .books.api import router as books_router
 
 
 @asynccontextmanager
@@ -39,10 +40,10 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(exhibitions_router, prefix="/v2", tags=["Выставка"])
 app.include_router(sections_router, prefix="/v2", tags=["Разделы"])
 app.include_router(contents_router, prefix="/v2", tags=["Контент"])
-app.include_router(book_router, tags=["Книги"])
+app.include_router(library_books_router, tags=["Книги"])
 app.include_router(books_router, prefix="/v2", tags=["Книги для раздела"])
 app.include_router(users_router, prefix="/users", tags=["Пользователи"])
-app.include_router(admin_router, prefix="/admin", tags=["Админ"])
+app.include_router(admins_router, prefix="/admin", tags=["Админ"])
 app.include_router(page_router)
 
 # Добавляем SessionMiddleware

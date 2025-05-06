@@ -7,8 +7,8 @@ import uuid
 import aiofiles
 import json
 
-from ..core import get_db, MEDIA_DIR, MAX_FILE_SIZE
-from .models import (
+from ....core import get_db, MEDIA_DIR, MAX_FILE_SIZE
+from ....models import (
     Book,
     Author,
     Genre,
@@ -24,12 +24,42 @@ from .schemas import (
 router_library = APIRouter(prefix="/library")
 
 
+@router_library.get("/authors/search/", response_model=List[AuthorResponse])
+async def search_authors(
+    q: str = Query(..., min_length=1, description="Поисковый запрос"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Поиск авторов по имени.
+    Например, q=Жю вернет Жюль Верна
+    """
+    query = select(Author).filter(Author.name.ilike(f"%{q}%"))
+    result = await db.execute(query)
+    authors = result.scalars().all()
+    return authors
+  
+  
+@router_library.get("/genres/search/", response_model=List[GenreResponse])
+async def search_genres(
+    q: str = Query(..., min_length=1, description="Поисковый запрос"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Поиск жанров по названию.
+    """
+    query = select(Genre).filter(Genre.name.ilike(f"%{q}%"))
+    result = await db.execute(query)
+    genres = result.scalars().all()
+    return genres  
+  
+
+
 # Эндпоинты для фильтрации книг
 @router_library.get("/books/", response_model=List[BookResponse])
 async def get_all_books(
     db: AsyncSession = Depends(get_db),
-    author_id: Optional[int] = Query(None),
-    genre_id: Optional[int] = Query(None),
+    author_id: Optional[List[int]] = Query(None),
+    genre_id: Optional[List[int]] = Query(None),
     sort_order: Optional[str] = Query(None)
 ):
     """
@@ -48,10 +78,12 @@ async def get_all_books(
     )
 
     if author_id:
-        query = query.join(Book.authors).filter(Author.id == author_id)
+        query = query.filter(Book.authors.any(Author.id.in_(author_id)))
+    
     
     if genre_id:
-        query = query.join(Book.genres).filter(Genre.id == genre_id)
+        query = query.filter(Book.genres.any(Genre.id.in_(genre_id)))
+        
 
     if sort_order == "asc":
         query = query.order_by(Book.title.asc())
@@ -206,14 +238,14 @@ from typing import List
 from starlette.status import HTTP_404_NOT_FOUND
 
 
-from ..core import (
+from ....core import (
     get_db,
 )
-from .models import Book
+from ....models import Book
 from .schemas import (
     BookResponse,
 )
-from ..designer.contents.models import ContentBlock
+from ....models import ContentBlock
 
 
 router = APIRouter(prefix="/content/{content_id}")

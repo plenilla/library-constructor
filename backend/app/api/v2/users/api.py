@@ -4,9 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
 from sqlalchemy.future import select
 
-from ..core import get_db
+from ....core import get_db
 
-from .models import User, UserRole
+from ....models import User, UserRole
 from .schemas import UserLogin, UserCreate
 
 
@@ -176,8 +176,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete
 from pydantic import BaseModel
-from .models import User
-from ..core import templates, get_db
+from ....models import User
+from ....core import templates, get_db
 
 
 admin_router = APIRouter()

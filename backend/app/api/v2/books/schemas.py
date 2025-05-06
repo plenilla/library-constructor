@@ -5,7 +5,7 @@ from fastapi import UploadFile, Form, File
 import json 
 from fastapi.exceptions import HTTPException
 
-from ..core import ALLOWED_MIME_TYPES
+from ....core import ALLOWED_MIME_TYPES
 
 class AuthorResponse(BaseModel):
     id: int

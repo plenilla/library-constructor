@@ -4,11 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List
 
-from ...core import get_db
-from ..exhibitions.models import Exhibition
+from ....core import get_db
+from ....models import Exhibition, Section
+
+
 from ..sections.schemas import SectionResponse, SectionCreate
 
-from ..sections.models import Section
 
 router = APIRouter(prefix="/exhibitions/{exhibition_id}")
 

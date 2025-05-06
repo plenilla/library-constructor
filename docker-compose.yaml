@@ -29,7 +29,7 @@ services:
       - dev
 
   backend:
-    build: ./project
+    build: ./backend
     container_name: backend
     environment:
       DB_HOST: mysql
@@ -37,7 +37,7 @@ services:
       DB_PASSWORD: 1423
       DB_NAME: test
     volumes:
-      - ./project:/app/project
+      - ./backend:/app/backend
       - ./frontend:/app/frontend
     depends_on:
       mysql:

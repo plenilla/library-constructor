@@ -5,7 +5,7 @@ from pydantic.generics import GenericModel
 from fastapi import UploadFile, Form, File
 from datetime import datetime
 
-from ...core import ALLOWED_MIME_TYPES, MAX_FILE_SIZE
+from ....core import ALLOWED_MIME_TYPES, MAX_FILE_SIZE
 from ..sections.schemas import SectionResponse
 
 

@@ -8,9 +8,9 @@ import uuid
 from datetime import datetime, timezone
 from slugify import slugify
 
-from ...core import MEDIA_DIR, get_db
-from .models import (
-    Exhibition,
+from ....core import MEDIA_DIR, get_db
+from ....models import (
+    Exhibition, Section
 )
 from .schemas import (
     ExhibitionBase,
@@ -18,7 +18,6 @@ from .schemas import (
     PaginatedResponse,
     ExhibitionOut,
 )
-from ..sections.models import Section
 
 
 router = APIRouter()

@@ -9,8 +9,8 @@ from sqlalchemy import (
 import enum
 from sqlalchemy.orm import relationship
 
-from ...core import Base
-from ...books.models import Book
+from .base_model import Base
+from .books import Book
 
 class ContentBlockType(enum.Enum):
     TEXT = "text"

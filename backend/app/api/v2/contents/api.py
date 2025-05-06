@@ -5,10 +5,9 @@ from typing import List
 from starlette.status import HTTP_404_NOT_FOUND
 
 
-from ...core import get_db
+from ....core import get_db
 
-from .models import ContentBlock
-from ..sections.models import Section
+from ....models import ContentBlock, Section
 from .schemas import ContentBlockCreate, ContentBlockResponse
 
 
