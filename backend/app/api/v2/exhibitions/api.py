@@ -85,7 +85,7 @@ async def get_page_exhibition(
     }
 
 
-@router.get("exhibitions/{slug}", response_model=ExhibitionOut)
+@router.get("/exhibitions/{slug}", response_model=ExhibitionOut)
 async def get_exhibiton_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
     """Получить конкрентую выставку с помощью slug
 
