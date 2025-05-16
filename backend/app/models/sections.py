@@ -12,7 +12,6 @@ from .books import Book
 
 class Section(Base):
     title = Column(Text, nullable=False)
-    order = Column(Integer, nullable=True, default=None)
     exhibition_id = Column(Integer, ForeignKey("exhibitions.id", ondelete="CASCADE"))
     # Связи
     exhibitions = relationship(

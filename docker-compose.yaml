@@ -1,8 +1,40 @@
-networks:
-  dev:
-
+version: "3.8"
 
 services:
+  # 1) Прокси‑сервер nginx, который сам поднимется без сертификатов
+  nginx-proxy:
+    image: jwilder/nginx-proxy:latest
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx_certs:/etc/nginx/certs:rw
+      - ./nginx/vhost.d:/etc/nginx/vhost.d:ro 
+      - nginx_html:/usr/share/nginx/html:rw
+
+  # 2) Companion для автоматической работы с Let's Encrypt
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: nginx-proxy-le
+    restart: always
+    depends_on:
+      - nginx-proxy
+    environment:
+      NGINX_PROXY_CONTAINER: nginx-proxy
+      DEBUG: "false"
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - acme_sh:/etc/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginx_certs:/etc/nginx/certs:rw
+      - nginx_vhost:/etc/nginx/vhost.d:rw
+      - nginx_html:/usr/share/nginx/html:rw
+
+
   mysql:
     image: mysql:8.0
     container_name: mysql
@@ -12,8 +44,6 @@ services:
       MYSQL_DATABASE: test
       MYSQL_USER: user
       MYSQL_PASSWORD: 1423
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -21,41 +51,51 @@ services:
       interval: 5s
       timeout: 5s
       retries: 15
-    command: 
-      --default-authentication-plugin=caching_sha2_password
-      --skip-log-bin
-      --log-slave-updates=OFF
-    networks:
-      - dev
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
     container_name: backend
     environment:
       DB_HOST: mysql
       DB_USER: user
       DB_PASSWORD: 1423
       DB_NAME: test
-    volumes:
-      - ./backend:/app/backend
-      - ./frontend:/app/frontend
+      VIRTUAL_HOST: www.exhibitdes.ru
+      VIRTUAL_PORT: 8000
+      LETSENCRYPT_HOST: www.exhibitdes.ru
+      LETSENCRYPT_EMAIL: fedorovkola2017@gmail.com
     depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - dev
+      - mysql
 
-  nginx:
-    image: nginx:stable-alpine
-    ports:
-      - "80:80"
-    volumes:
-      - './nginx.conf:/etc/nginx/nginx.conf'
-      - './frontend/static:/usr/share/nginx/html/static'
-    depends_on:
-      - backend
-    networks:
-      - dev
+  frontend:
+    build:
+      context: ./frontend
+      target: prod
+    container_name: frontend
+    environment:
+      NEXT_PUBLIC_BASE_URL: https://www.exhibitdes.ru
+      VIRTUAL_HOST: exhibitdes.ru
+      VIRTUAL_PORT: 3000
+      LETSENCRYPT_HOST: exhibitdes.ru
+      LETSENCRYPT_EMAIL: fedorovkola2017@gmail.com
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    restart: always
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    labels:
+      - VIRTUAL_HOST=exhibitdes.ru
+      - VIRTUAL_PORT=8080
+      - VIRTUAL_PATH=/admin
+      - LETSENCRYPT_HOST=exhibitdes.ru
+      - LETSENCRYPT_EMAIL=fedorovkola2017@gmail.com
 
 volumes:
   mysql_data:
+  nginx_certs:
+  nginx_vhost:
+  nginx_html:
+  acme_sh:

@@ -1,129 +1,118 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func, and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-from starlette.status import HTTP_404_NOT_FOUND
-
 
 from ....core import get_db
-
 from ....models import ContentBlock, Section
-from .schemas import ContentBlockCreate, ContentBlockResponse
+from .schemas import ContentBlockCreate, ContentBlockResponse, ContentBlockUpdate
+from .services import ContentService
+from ....api.v2.exhibitions.services import ExhibitionService  # импортируем сервис выставок
+from ....core import MEDIA_DIR  # если используется в ExhibitionService
+
+router = APIRouter(
+    prefix="/exhibitions/{exhibition_slug}/sections/{section_id}/content",
+    tags=["content"]
+)
+
+# Получение контента раздела
+@router.get("/", response_model=List[ContentBlockResponse])
+async def get_section_content(
+    exhibition_slug: str,
+    section_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    # Проверка существования выставки
+    exhibition = await ExhibitionService(db).get_exhibition_by_slug(exhibition_slug)
+    if not exhibition:
+        raise HTTPException(404, "Выставка не найдена")
+
+    # Проверка принадлежности раздела к выставке
+    section = await db.get(Section, section_id)
+    if not section or section.exhibition_id != exhibition.id:
+        raise HTTPException(404, "Раздел не найден")
+
+    service = ContentService(db)
+    try:
+        return await service.get_section_content(section_id)
+    except Exception as e:
+        raise HTTPException(500, "Ошибка загрузки контента")
 
 
-router = APIRouter(prefix="/sections/{section_id}")
-
-
-@router.get("/content/", response_model=List[ContentBlockResponse])
-async def get_section_content(section_id: int, db: AsyncSession = Depends(get_db)):
-    """
-    Получить список контент-блоков для конкретного раздела.
-
-    Args:
-        section_id (int): Идентификатор раздела.
-        db (AsyncSession): Сессия базы данных.
-
-    Returns:
-        List[ContentBlockResponse]: Список контент-блоков раздела.
-    """
-    # Проверяем существование раздела (при необходимости)
-    result = await db.execute(select(Section).where(Section.id == section_id))
-    section = result.scalar_one_or_none()
-    if not section:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Section not found")
-
-    # Выбираем все контент-блоки раздела
-    result = await db.execute(
-        select(ContentBlock).where(ContentBlock.section_id == section_id)
-    )
-    content_blocks = result.scalars().all()
-    return content_blocks
-
-
-@router.post("/content/", response_model=ContentBlockResponse)
+# Создание нового блока контента в разделе выставки
+@router.post("/", response_model=ContentBlockResponse)
 async def create_content_block(
+    exhibition_slug: str,
     section_id: int,
     content_data: ContentBlockCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    # Проверяем, существует ли секция
-    result = await db.execute(select(Section).where(Section.id == section_id))
-    section = result.scalar_one_or_none()
-    if not section:
-        raise HTTPException(status_code=404, detail="Секция не найдена")
-
-    # Получаем максимальное значение order в секции
-    max_order_result = await db.execute(
-        select(func.max(ContentBlock.order)).where(
-            ContentBlock.section_id == section_id
-        )
-    )
-    max_order = max_order_result.scalar() or 0
-
-    # Если order не задан — автоустанавливаем
-    if content_data.order is None:
-        content_data.order = max_order + 1
-    else:
-        # Проверяем, не занят ли такой order в секции
-        existing_order = await db.execute(
-            select(ContentBlock).where(
-                ContentBlock.section_id == section_id,
-                ContentBlock.order == content_data.order,
-            )
-        )
-        if existing_order.scalar():
-            raise HTTPException(
-                status_code=400, detail="Порядковый номер уже занят в этой секции"
-            )
-
-    content_block = ContentBlock(
-        section_id=section_id,
-        type=content_data.type,
-        order=content_data.order,
-        text_content=content_data.text_content,
-        book_id=content_data.book_id,
-    )
-    db.add(content_block)
-    await db.commit()
-    await db.refresh(content_block)
-    return content_block
+    exhibition_service = ExhibitionService(db, MEDIA_DIR)
+    try:
+        exhibition = await exhibition_service.get_exhibition_by_slug(exhibition_slug)
+        if not exhibition:
+            raise HTTPException(status_code=404, detail="Выставка не найдена")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Ошибка получения выставки")
+    
+    service = ContentService(db)
+    try:
+        block = await service.create_content_block(section_id, content_data)
+        await db.commit()
+        await db.refresh(block)
+        return block
+    except HTTPException as he:
+        await db.rollback()
+        raise he
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/content/{content_id}")
-async def delete_content_text(
+# Удаление блока контента
+@router.delete("/{content_id}", response_model=None)
+async def delete_block(
+    exhibition_slug: str,
     section_id: int,
     content_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Удалить текстовый контент по его ID в рамках указанного раздела.
+    # Проверка выставки
+    exhibition = await ExhibitionService(db, MEDIA_DIR).get_exhibition_by_slug(exhibition_slug)
+    if not exhibition:
+        raise HTTPException(404, "Выставка не найдена")
 
-    Если блок не найден, не является текстовым или не принадлежит разделу, возвращает 404.
-    """
-    # Проверяем существование текстового блока в нужном разделе
-    result = await db.execute(
-        select(ContentBlock).where(
-            and_(
-                ContentBlock.id == content_id,
-                ContentBlock.section_id == section_id,
-                ContentBlock.type == "TEXT",
-            )
-        )
-    )
-    content = result.scalars().first()
-    if not content:
-        raise HTTPException(
-            status_code=HTTP_404_NOT_FOUND,
-            detail="Текстовый контент не найден в указанном разделе",
-        )
+    service = ContentService(db)
+    try:
+        # Удаляем любой блок (text или book), не трогая сами книги
+        await service.delete_block(section_id, content_id)
+        await db.commit()
+        return
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(500, str(e))
 
-    # Удаляем блок
-    await db.execute(
-        delete(ContentBlock).where(
-            and_(
-                ContentBlock.id == content_id,
-                ContentBlock.section_id == section_id,
-            )
-        )
-    )
-    await db.commit()
+
+@router.put("/{content_id}", response_model=ContentBlockResponse)
+async def update_content_block(
+    exhibition_slug: str,
+    section_id: int,
+    content_id: int,
+    content_data: ContentBlockUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    exhibition_service = ExhibitionService(db, MEDIA_DIR)
+    exhibition = await exhibition_service.get_exhibition_by_slug(exhibition_slug)
+    if not exhibition:
+        raise HTTPException(status_code=404, detail="Выставка не найдена")
+
+    service = ContentService(db)
+    try:
+        block = await service.update_content_block(section_id, content_id, content_data)
+        await db.commit()
+        return block
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

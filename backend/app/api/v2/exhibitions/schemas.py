@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import Optional, List, Literal, Generic, TypeVar
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator, Field
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator, Field, validator
 from pydantic.generics import GenericModel
 from fastapi import UploadFile, Form, File
 from datetime import datetime
-
+from ....models import User
 from ....core import ALLOWED_MIME_TYPES, MAX_FILE_SIZE
 from ..sections.schemas import SectionResponse
 
@@ -13,12 +13,21 @@ class ExhibitionResponse(BaseModel):
     id: int
     sections: List["SectionResponse"] = []
     title: str
+    slug: str
     description: Optional[str]
     is_published: bool
     image: str
     created_at: datetime
     published_at: Optional[datetime] = None
+    author: str
     model_config = ConfigDict(from_attributes=True)
+    
+    @validator('author', pre=True)
+    def set_author(cls, author_obj):
+        if author_obj and author_obj.fullname:
+            return author_obj.fullname
+        return "Аноним"
+
 
 T = TypeVar("T")
 
@@ -62,9 +71,19 @@ class ExhibitionBase(BaseModel):
 
 class ExhibitionOut(BaseModel):
     id: int
+    sections: List["SectionResponse"] = []
     title: str
     slug: str
+    description: Optional[str]
     is_published: bool
-    image: Optional[str] = None
-    description: Optional[str] = None
+    image: str
+    author: str
+    created_at: datetime
+    published_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
+    
+    @validator('author', pre=True)
+    def set_author(cls, author_obj):
+        if author_obj and author_obj.fullname:
+            return author_obj.fullname
+        return "Аноним"

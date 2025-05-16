@@ -47,12 +47,14 @@ async def login(
     request.session["user_id"] = str(user.id)
     request.session["role"] = user.role.value
     is_authenticated = "user_id" in request.session
+    request.session["fullname"] = user.fullname or ""
 
     return JSONResponse(
         content={
             "message": "Успешный вход",
             "role": user.role.value,
             "is_authenticated": is_authenticated,
+            "fullname": user.fullname or "",
         },
         status_code=200,
     )
@@ -71,11 +73,13 @@ async def check_auth(request: Request):
     try:
         is_authenticated = "user_id" in request.session
         role = request.session.get("role", None)
+        fullname = request.session.get("fullname", None)
 
         return JSONResponse(
             content={
                 "is_authenticated": is_authenticated,
                 "role": role,
+                "fullname": fullname,
                 "user_id": request.session.get("user_id") if is_authenticated else None,
             },
             status_code=200,
@@ -88,14 +92,13 @@ async def check_auth(request: Request):
         )
 
 
-@router.get("/logout", response_class=HTMLResponse)
+@router.post("/logout")
 async def logout(request: Request):
-    # Очищаем данные сессии
     request.session.clear()
-    # Создаем ответ с перенаправлением
-    response = RedirectResponse(url="/", status_code=302)
 
-    response.delete_cookie("session")
+    # Формируем JSON‑ответ, а не RedirectResponse
+    response = JSONResponse({"message": "Вы успешно вышли"}, status_code=200)
+    response.delete_cookie("session", path="/")  
     return response
 
 
@@ -138,7 +141,10 @@ async def register(
 
     try:
         new_user = User(
-            username=form_data.username, hashed_password=hashed_password, role="reader"
+            username=form_data.username, 
+            hashed_password=hashed_password, 
+            role=UserRole.READER,
+            fullname=form_data.fullname
         )
 
         db.add(new_user)
@@ -148,7 +154,8 @@ async def register(
         # Автоматический вход после регистрации
         request.session["user_id"] = str(new_user.id)
         request.session["role"] = new_user.role.value
-
+        request.session["fullname"] = new_user.fullname or ""
+        
         return JSONResponse(
             content={
                 "message": "Пользователь успешно зарегистрирован",
@@ -177,7 +184,7 @@ from sqlalchemy.future import select
 from sqlalchemy import delete
 from pydantic import BaseModel
 from ....models import User
-from ....core import templates, get_db
+from ....core import get_db
 
 
 admin_router = APIRouter()
@@ -190,11 +197,6 @@ def check_admin(request: Request):
 
 
 # Endpoint для отдачи статической панели админа (файл adminpanel.html должен лежать в каталоге frontend)
-@admin_router.get("/dashboard/", response_class=HTMLResponse)
-async def item_page(request: Request):
-    """Это страница со списком всех пользователей"""
-    return templates.TemplateResponse("adminpanel.html", {"request": request})
-
 
 # Endpoint для получения списка пользователей в JSON
 @admin_router.get("/dashboard/users", response_class=JSONResponse)

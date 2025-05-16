@@ -34,13 +34,15 @@ class Book(Base):
       "Author",
       secondary=book_authors,
       back_populates="books", 
-      passive_deletes=True
+      passive_deletes=True,
+      lazy="selectin",
     )
     genres = relationship(
       "Genre",
       secondary=book_genres,
       back_populates="books",
-      passive_deletes=True
+      passive_deletes=True,
+      lazy="selectin",
     )
     content_blocks = relationship(
       "ContentBlock",
@@ -56,7 +58,8 @@ class Author(Base):
     "Book",
     secondary=book_authors,
     back_populates="authors",
-    passive_deletes=True
+    passive_deletes=True,
+    lazy="selectin"
   )
   
 
@@ -66,5 +69,6 @@ class Genre(Base):
         "Book",
         secondary=book_genres,
         back_populates="genres",
-        passive_deletes=True
+        passive_deletes=True,
+        lazy="selectin"
     )

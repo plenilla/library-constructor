@@ -24,7 +24,9 @@ class Exhibition(Base):
     image = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
-    published_at = Column(DateTime, nullable=True)
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    author_id = Column(Integer, ForeignKey('users.id'), nullable=True) 
+    author = relationship("User", back_populates="exhibitions")
     sections = relationship(
         "Section",
         back_populates="exhibitions",

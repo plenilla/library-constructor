@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict, field_validator, Field
 from fastapi import UploadFile, Form, File

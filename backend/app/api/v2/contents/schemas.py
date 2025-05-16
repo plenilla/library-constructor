@@ -1,49 +1,55 @@
 from __future__ import annotations
-from typing import Optional, Literal
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator, Field
-
+from typing import Optional, Literal, List
+from pydantic import BaseModel, ConfigDict, model_validator 
+from ..books.schemas import BookResponse
 
 class ContentBlockResponse(BaseModel):
     id: int
     type: str
     text_content: Optional[str]
-    order: int
     book_id: Optional[int]
+    book: Optional[BookResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ContentBlockCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    type: Literal["text", "book"]
+    text_content: Optional[str] = None
+    book_id:      Optional[int] = None
+
+    @model_validator(mode="after")
+    def check_consistency(self):
+        if self.type == "text":
+            if self.book_id is not None:
+                raise ValueError("book_id must be null for text type")
+            if not self.text_content:
+                raise ValueError("text_content required")
+        elif self.type == "book":
+            if self.text_content is not None:
+                raise ValueError("text_content must be null for book type")
+            if self.book_id is None:
+                raise ValueError("book_id required")
+        return self
+
+
+class ContentBlockUpdate(BaseModel):
+    type: Optional[Literal["text", "book"]] = None
     text_content: Optional[str] = None
     book_id: Optional[int] = None
-    order: Optional[int] = Field(default=None, examples=[None], description="что то")
 
-    type: Optional[Literal["text", "book"]] = None
-
-    @model_validator(mode="before")
-    def infer_type_and_cleanup(cls, values: dict) -> dict:
-        book_id = values.get("book_id")
-        text_content = values.get("text_content")
-
-        if book_id:
-            values["type"] = "book"
-            values["text_content"] = None  # очищаем
-        else:
-            values["type"] = "text"
-            values["book_id"] = None  # очищаем
-
-        return values
-
-    @field_validator("text_content")
-    def validate_text(cls, v: Optional[str], info) -> Optional[str]:
-        inferred_type = info.data.get("type")
-        if inferred_type == "text" and not v:
-            raise ValueError("Поле text_content обязательно для блока с типом 'text'")
-        return v
-
-    @field_validator("book_id")
-    def validate_book(cls, v: Optional[int], info) -> Optional[int]:
-        inferred_type = info.data.get("type")
-        if inferred_type == "book" and not v:
-            raise ValueError("Поле book_id обязательно для блока с типом 'book'")
-        return v
+    @model_validator(mode='after')
+    def check_consistency(self):
+        if self.type == "text":
+            if self.book_id is not None:
+                raise ValueError("book_id must be null for text type")
+            if not self.text_content:
+                raise ValueError("text_content required")
+        elif self.type == "book":
+            if self.text_content is not None:
+                raise ValueError("text_content must be null for book type")
+            if self.book_id is None:
+                raise ValueError("book_id required")
+        return self
