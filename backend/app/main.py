@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 import os
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
-from .core import BASE_DIR
+from .core import BASE_DIR, MEDIA_DIR
 from .core.middleware import setup_middleware
 from .core.database import db_helper, get_db
 from .models import Base
@@ -24,17 +25,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
 # Добавляем SessionMiddleware
 setup_middleware(app)
 
 # Подключаем папку static
-app.mount(
-    "/static",
-    StaticFiles(
-        directory=os.path.join(BASE_DIR, "..", "..", "..", "frontend", "public")
-    ),
-    name="static",
-)
+@app.get("/picture/{filename}")
+def get_photo(filename: str):
+    path = os.path.join(MEDIA_DIR, filename)
+    if not os.path.isfile(path):
+        return JSONResponse(status_code=404, content={"detail": "File not found"})
+    return FileResponse(path)
+
+
 
 if __name__ == "__main__":
     import uvicorn

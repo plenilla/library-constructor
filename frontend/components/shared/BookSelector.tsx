@@ -65,6 +65,9 @@ export default function BookSelector({ selectedBookId, onSelect }: BookSelectorP
     return () => clearTimeout(debounceTimer)
   }, [searchTerm, sortOrder, selectedAuthor, selectedGenre])
 
+    const imageUrl = data.image?.startsWith("http")
+      ? data.image
+      : new URL(data.image!, process.env.NEXT_PUBLIC_URL).toString();
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -127,7 +130,7 @@ export default function BookSelector({ selectedBookId, onSelect }: BookSelectorP
               <div className="flex items-center gap-4">
                 {book.image_url && (
                   <img
-                    src={`http://82.202.137.19${book.image_url}`} // Фикс URL изображения
+                    src={imageUrl}
                     alt={book.title}
                     className="w-16 h-24 object-cover rounded"
                     onError={(e) => { // Обработка ошибок загрузки изображений

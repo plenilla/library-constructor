@@ -15,7 +15,5 @@ export const Sections = () => {
             </Link>
             Мероприятия
         </div>  
-        //TODO: 
-        // 1) сделать общий класс 
     )
 }

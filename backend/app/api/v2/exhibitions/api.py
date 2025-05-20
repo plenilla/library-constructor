@@ -1,5 +1,5 @@
 # routers.py
-from fastapi import APIRouter, Depends, UploadFile, Form, Request
+from fastapi import APIRouter, Depends, UploadFile, Form, Request, Query
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
@@ -29,8 +29,8 @@ async def get_all_exhibitions(
 @router.get("/exhibitionsPage/", response_model=PaginatedResponse[ExhibitionResponse])
 async def get_page_exhibition(
     published: Optional[bool] = None,
-    page: int = 1,
-    size: int = 10,
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1),
     search: Optional[str] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,

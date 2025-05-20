@@ -1,6 +1,5 @@
 import { ExhibitionType } from '@/interfaces/exhibition'
-import Image from 'next/image'
-
+import Image from "next/image"
 interface ExhibitionProps {
   exhibition: ExhibitionType
 }
@@ -14,7 +13,7 @@ export const Exhibition = ({ exhibition }: ExhibitionProps) => {
 
   const imageUrl = exhibition.image?.startsWith('http')
     ? exhibition.image
-    : `${process.env.NEXT_PUBLIC_BASE_URL}${exhibition.image}`
+    : `${process.env.NEXT_PUBLIC_URL}${exhibition.image}`
 
   return (
     <div className="bg-white flex flex-col md:flex-row items-center p-4 cursor-pointer hover:shadow-lg transition-shadow mb-1">

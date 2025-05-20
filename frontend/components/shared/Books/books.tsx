@@ -6,6 +6,7 @@ import { useState, Fragment, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
+
 interface BookProps {
   book: Book;
 }
@@ -28,7 +29,7 @@ export const Books = ({ book }: BookProps) => {
   }, [isModalOpen]);
   const imageUrl = book.image_url?.startsWith("http")
     ? book.image_url
-    : new URL(book.image_url!, process.env.NEXT_PUBLIC_BASE_URL).toString();
+    : new URL(book.image_url!, process.env.NEXT_PUBLIC_URL).toString();
 
   return (
     <>
@@ -45,7 +46,6 @@ export const Books = ({ book }: BookProps) => {
         width={150}
         height={200}
         className="object-contain w-full h-[70px] md:h-[150px] shadow-accent-foreground"
-        unoptimized
       />
     </div>
 

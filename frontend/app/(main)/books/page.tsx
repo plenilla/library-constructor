@@ -4,6 +4,8 @@ import { Books } from '@/components/shared/Books/books'
 import useMyAxios from '@/composables/useMyAxios'
 import { Author, Book, Genre } from '@/interfaces/books'
 import React, { useEffect, useState } from 'react'
+import ImageWithRefresh from '@/components/ImageWithRefresh'
+
 
 const BookPage: React.FC = () => {
   const { request, loading, error } = useMyAxios()

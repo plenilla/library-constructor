@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -20,6 +20,9 @@ from .schemas import (
     BookResponse,
     AuthorResponse,
     GenreResponse,
+    BookPut,
+    AuthorCreate, 
+    GenreCreate
 )
 
 
@@ -38,6 +41,108 @@ async def get_all_books(
     return await service.get_filtered_books(author_id, genre_id, sort_order)
 
 
+import logging
+from pathlib import Path as Pathh
+from typing import Optional
+import aiofiles
+import aiofiles.os
+
+logger = logging.getLogger(__name__)
+
+async def _delete_old_image(image_url: Optional[str]) -> None:
+    """
+    Удаляет старый файл изображения, если он существует.
+    Путь к файлу определяется с помощью MEDIA_DIR.
+    """
+    if not image_url:
+        return
+
+    try:
+        # Предполагается, что image_url хранит относительный путь от MEDIA_DIR
+        filepath = MEDIA_DIR / Pathh(image_url).name
+
+        if await aiofiles.os.path.exists(filepath):
+            if await aiofiles.os.path.isfile(filepath):
+                await aiofiles.os.remove(filepath)
+                logger.info(f"Deleted old image: {filepath}")
+            else:
+                logger.warning(f"Path is not a file: {filepath}")
+        else:
+            logger.info(f"File not found: {filepath}")
+
+    except Exception as e:
+        logger.error(f"Error deleting file {image_url}: {str(e)}")
+
+
+async def _save_image(image: UploadFile) -> str:
+    """
+    Сохраняет изображение в каталоге MEDIA_DIR.
+    Если каталоги не существуют, создаёт их.
+    """
+    # Убедимся, что MEDIA_DIR существует; если нет, создаем его с родительскими директориями
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{uuid.uuid4()}{Pathh(image.filename).suffix}"
+    filepath = MEDIA_DIR / filename
+
+    async with aiofiles.open(filepath, "wb") as buffer:
+        content = await image.read()
+        await buffer.write(content)
+
+    return filename
+
+
+@router_library.put("/books/{book_id}", response_model=BookResponse)
+async def put_book(
+    book_id: int,
+    book_data: BookPut = Depends(BookPut.as_form),
+    db: AsyncSession = Depends(get_db)
+):
+    finded_book = await db.execute(select(Book).where(Book.id == book_id))
+    book = finded_book.scalar_one_or_none()
+    if not book:
+        raise HTTPException(404, "book not found") 
+    
+    # Check if a new image is provided
+    if book_data.image_url is not None:
+        # Delete the old image if it exists
+        if book.image_url:
+            await _delete_old_image(book.image_url)
+        # Save the new image
+        filename = await _save_image(book_data.image_url)
+        book.image_url = f"/picture/{filename}"
+            
+    # Update other fields only if provided
+    if book_data.title is not None:
+        book.title = book_data.title
+    if book_data.annotations is not None:
+        book.annotations = book_data.annotations
+    if book_data.library_description is not None:
+        book.library_description = book_data.library_description 
+    if book_data.year_of_publication is not None:
+        book.year_of_publication = book_data.year_of_publication
+    
+    # Update genres if provided
+    if book_data.genre_ids is not None:
+        result = await db.execute(
+            select(Genre).where(Genre.id.in_(book_data.genre_ids))
+        )
+        genres = result.scalars().all()
+        book.genres = genres
+        
+    # Update authors if provided
+    if book_data.author_ids is not None:   
+        result = await db.execute(
+            select(Author).where(Author.id.in_(book_data.author_ids))
+        )
+        authors = result.scalars().all()
+        book.authors = authors
+        
+    await db.commit()
+    await db.refresh(book)
+    return book
+    
+
 @router_library.get("/authors/options/", response_model=List[AuthorResponse])
 async def get_authors_options(db: AsyncSession = Depends(get_db)):
     service = BooksFondsService(db, MEDIA_DIR, MAX_FILE_SIZE)
@@ -47,6 +152,26 @@ async def get_authors_options(db: AsyncSession = Depends(get_db)):
 async def get_genres_options(db: AsyncSession = Depends(get_db)):
     service = BooksFondsService(db, MEDIA_DIR, MAX_FILE_SIZE)
     return await service.get_genres()
+
+@router_library.post("/authors/", response_model=AuthorResponse)
+async def create_author(
+    author_data: AuthorCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    service = BooksFondsService(db, MEDIA_DIR, MAX_FILE_SIZE)
+    author = await service.create_author(author_data)
+    await db.commit()
+    return author
+
+@router_library.post("/genres/", response_model=GenreResponse)
+async def create_genre(
+    genre_data: GenreCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    service = BooksFondsService(db, MEDIA_DIR, MAX_FILE_SIZE)
+    genre = await service.create_genre(genre_data)
+    await db.commit()
+    return genre
 
 @router_library.get(
     "/books/{book_id}",

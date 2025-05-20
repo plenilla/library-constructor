@@ -1,27 +1,34 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'export', // ← Убираем статический экспорт
   eslint: {
     ignoreDuringBuilds: true,
   },
+  assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
   typescript: {
     ignoreBuildErrors: true,
   },
+  output: 'standalone',
   images: {
-    // либо просто перечислить имена хостов
-    domains: ['www.exhibitdes.ru', 'exhibitdes.ru'],
-    // либо паттерны (Next 12+)
+    unoptimized: true,
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'www.exhibitdes.ru',
-        port: '',
-        pathname: '/static/picture/**',
-      },
+        {
+            protocol: 'https',
+            hostname: 'exhibitdes.ru',
+            pathname: '/picture/**',
+        },
     ],
-  },
+},
   async headers() {
     return [
+      {
+        source: "/picture/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0",
+          },
+        ],
+      },
       {
         source: "/(.*)",
         headers: [

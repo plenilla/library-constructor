@@ -227,7 +227,7 @@ export default function ExhibitionEditor() {
 				</div>
 			))}
 			<div className='fixed bottom-10 right-10'>
-				<Button variant='primary' onClick={()=>{setEditingSection(null); setEditingBlock(null); setEditingSectionTitle(null); openModal()}}>
+				<Button className="" variant='primary' onClick={()=>{setEditingSection(null); setEditingBlock(null); setEditingSectionTitle(null); openModal()}}>
 					+ Новый раздел
 				</Button>
 			</div>

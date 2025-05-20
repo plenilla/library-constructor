@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  # 1) Прокси‑сервер nginx, который сам поднимется без сертификатов
+  # 1) Прокси‑сервер nginx, который подхватит ваш wildcard-сертификат
   nginx-proxy:
     image: jwilder/nginx-proxy:latest
     container_name: nginx-proxy
@@ -11,34 +11,40 @@ services:
       - "443:443"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - nginx_certs:/etc/nginx/certs:rw
-      - ./nginx/vhost.d:/etc/nginx/vhost.d:ro 
+      - ./certbot-dns/conf:/etc/nginx/certs:ro
+      - ./nginx/vhost.d:/etc/nginx/vhost.d:ro
       - nginx_html:/usr/share/nginx/html:rw
+    networks:
+      - app-network
 
-  # 2) Companion для автоматической работы с Let's Encrypt
-  letsencrypt:
-    image: jrcs/letsencrypt-nginx-proxy-companion
-    container_name: nginx-proxy-le
-    restart: always
-    depends_on:
-      - nginx-proxy
-    environment:
-      NGINX_PROXY_CONTAINER: nginx-proxy
-      DEBUG: "false"
-    volumes_from:
-      - nginx-proxy
+  # 2) Контейнер для получения и обновления сертификата через DNS-01
+  certbot-dns:
+    image: certbot/certbot:latest
+    container_name: certbot-dns
     volumes:
-      - acme_sh:/etc/acme.sh
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - nginx_certs:/etc/nginx/certs:rw
-      - nginx_vhost:/etc/nginx/vhost.d:rw
-      - nginx_html:/usr/share/nginx/html:rw
-
+      - ./certbot-dns/conf:f/etc/letsencrypt
+      - ./certbot-dns/cloudflare.ini:/etc/cloudflare.ini:ro
+    entrypoint: /bin/sh
+    command: -c "
+      pip install certbot-dns-cloudflare
+      certbot certonly \
+        --dns-cloudflare \
+        --dns-cloudflare-credentials /etc/cloudflare.ini \
+        --dns-cloudflare-propagation-seconds 60 \
+        --non-interactive \
+        --agree-tos \
+        --email fedorovkola2017@gmail.com \
+        -d exhibitdes.ru -d '*.exhibitdes.ru'
+      "
+    networks:
+      - app-network
 
   mysql:
     image: mysql:8.0
     container_name: mysql
     restart: always
+    ports:
+      - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: 1423
       MYSQL_DATABASE: test
@@ -51,11 +57,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 15
+    command:
+      --default-authentication-plugin=mysql_native_password
+      --skip-log-bin
+      --log-slave-updates=OFF
+    networks:
+      - app-network
 
   backend:
     build:
       context: ./backend
     container_name: backend
+    volumes:
+      - photos_volume:/storage/photos
     environment:
       DB_HOST: mysql
       DB_USER: user
@@ -63,22 +77,30 @@ services:
       DB_NAME: test
       VIRTUAL_HOST: www.exhibitdes.ru
       VIRTUAL_PORT: 8000
-      LETSENCRYPT_HOST: www.exhibitdes.ru
-      LETSENCRYPT_EMAIL: fedorovkola2017@gmail.com
     depends_on:
       - mysql
+    networks:
+      - app-network
 
   frontend:
     build:
       context: ./frontend
       target: prod
     container_name: frontend
+    volumes:
+      - photos_volume:/app/public/picture:ro
     environment:
-      NEXT_PUBLIC_BASE_URL: https://www.exhibitdes.ru
+      NEXT_PUBLIC_BASE_URL: https://exhibitdes.ru
+      # Proxy переменные для nginx-proxy
       VIRTUAL_HOST: exhibitdes.ru
-      VIRTUAL_PORT: 3000
-      LETSENCRYPT_HOST: exhibitdes.ru
-      LETSENCRYPT_EMAIL: fedorovkola2017@gmail.com
+      PORT: 80
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
 
   adminer:
     image: adminer:latest
@@ -90,12 +112,19 @@ services:
       - VIRTUAL_HOST=exhibitdes.ru
       - VIRTUAL_PORT=8080
       - VIRTUAL_PATH=/admin
-      - LETSENCRYPT_HOST=exhibitdes.ru
-      - LETSENCRYPT_EMAIL=fedorovkola2017@gmail.com
+    networks:
+      - app-network
 
 volumes:
   mysql_data:
-  nginx_certs:
-  nginx_vhost:
   nginx_html:
-  acme_sh:
+  photos_volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/storage/photos
+
+networks:
+  app-network:
+    driver: bridge

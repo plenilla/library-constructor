@@ -72,7 +72,7 @@ export default function ExhibitionDetail({ slug }: Props) {
 
   const imageUrl = data.image?.startsWith("http")
     ? data.image
-    : new URL(data.image!, process.env.NEXT_PUBLIC_BASE_URL).toString();
+    : new URL(data.image!, process.env.NEXT_PUBLIC_URL).toString();
 
   return (
     <div>

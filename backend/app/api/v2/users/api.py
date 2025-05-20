@@ -169,9 +169,9 @@ async def register(
     except Exception as e:
         await db.rollback()
         return JSONResponse(
-            content={"error": "Ошибка при регистрации", "details": str(e)},
-            status_code=500,
-        )
+                content={"error": "Ошибка при регистрации", "details": str(e)},
+                status_code=500,
+            )
 
 
 # admin.py

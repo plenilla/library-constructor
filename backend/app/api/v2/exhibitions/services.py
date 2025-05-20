@@ -111,7 +111,7 @@ class ExhibitionService:
         exhibition = Exhibition(
             **data.dict(exclude={'image'}),
             slug=slug,
-            image=f"/static/picture/{filename}",
+            image=f"/picture/{filename}",
             created_at=datetime.now(timezone.utc),
             published_at=datetime.now(timezone.utc) 
             if data.is_published else None,
@@ -138,7 +138,7 @@ class ExhibitionService:
         if image:
             await self._delete_old_image(exhibition.image)
             filename = await self._save_image(image)
-            exhibition.image = f"/static/picture/{filename}"
+            exhibition.image = f"/picture/{filename}"
 
         # Update other fields
         exhibition.title = data.title

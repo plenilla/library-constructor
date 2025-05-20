@@ -48,10 +48,19 @@ class ExhibitionBase(BaseModel):
     def validate_image(cls, v: UploadFile):
         if v is None:
             return v
+            
+        # Проверка MIME-типа
         if v.content_type not in ALLOWED_MIME_TYPES:
-            raise ValueError("Invalid image format")
-        if v.size > MAX_FILE_SIZE:
-            raise ValueError("Image too large")
+            raise ValueError(f"Недопустимый формат: {v.content_type}")
+        
+        # Получение реального размера файла
+        v.file.seek(0, 2)  # Перемещаем указатель в конец файла
+        file_size = v.file.tell()
+        v.file.seek(0)  # Возвращаем указатель в начало
+        
+        if file_size > MAX_FILE_SIZE:
+            raise ValueError(f"Файл слишком большой: {file_size/1024/1024:.2f} MB")
+        
         return v
 
     @classmethod

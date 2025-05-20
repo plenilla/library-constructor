@@ -7,7 +7,7 @@ import uuid
 import aiofiles
 from fastapi import HTTPException, UploadFile
 from ....models import Book, Author, Genre, ContentBlock
-from .schemas import BookCreate
+from .schemas import BookCreate, AuthorCreate, GenreCreate
   
 
 class BooksFondsService:
@@ -97,7 +97,7 @@ class BooksFondsService:
                 title=book_data.title,
                 annotations=book_data.annotations,
                 library_description=book_data.library_description,
-                image_url=f"/static/picture/{filename}",
+                image_url=f"/picture/{filename}",
                 year_of_publication=book_data.year_of_publication,
                 authors=authors,
                 genres=genres,
@@ -181,7 +181,24 @@ class BooksFondsService:
         if not genre:
             raise HTTPException(400, detail=f"Genre {genre_id} not found")
         return genre
+    
+    async def create_author(self, author_data: AuthorCreate) -> Author:
+        existing = await self.db.execute(select(Author).where(Author.name == author_data.name))
+        if existing.scalar_one_or_none():
+            raise HTTPException(400, detail="Author already exists")
+        new_author = Author(name=author_data.name)
+        self.db.add(new_author)
+        await self.db.flush()
+        return new_author
 
+    async def create_genre(self, genre_data: GenreCreate) -> Genre:
+        existing = await self.db.execute(select(Genre).where(Genre.name == genre_data.name))
+        if existing.scalar_one_or_none():
+            raise HTTPException(400, detail="Genre already exists")
+        new_genre = Genre(name=genre_data.name)
+        self.db.add(new_genre)
+        await self.db.flush()
+        return new_genre
 
 
 class BooksContentService:
