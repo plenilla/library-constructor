@@ -14,4 +14,4 @@ from .sections.api import router as sections_router
 from .books.api import router as books_router
 from .books.api import router_library as library_books_router
 from .users.api import router as users_router
-from .users.api import router as admins_router
+from .users.api import admin_router as admins_router

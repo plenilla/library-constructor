@@ -3,15 +3,43 @@ from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
 from sqlalchemy.future import select
+from sqlalchemy import delete
 
 from ....core import get_db
 
 from ....models import User, UserRole
-from .schemas import UserLogin, UserCreate
+from .schemas import UserLogin, UserCreate, UserSelfUpdate, AdminUserUpdate
 
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+@router.put("/user/update")
+async def update_self(
+    request: Request,
+    data: UserSelfUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    user_id = request.session.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Неавторизован")
+
+    result = await db.execute(select(User).where(User.id == int(user_id)))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if data.username:
+        user.username = data.username
+    if data.fullname:
+        user.fullname = data.fullname
+
+    await db.commit()
+    await db.refresh(user)
+
+    return {"message": "Данные обновлены", "username": user.username, "fullname": user.fullname}
 
 
 @router.post("/login")
@@ -197,67 +225,75 @@ def check_admin(request: Request):
 
 
 # Endpoint для отдачи статической панели админа (файл adminpanel.html должен лежать в каталоге frontend)
-
-# Endpoint для получения списка пользователей в JSON
-@admin_router.get("/dashboard/users", response_class=JSONResponse)
+@admin_router.get("/users", response_class=JSONResponse)
 async def get_users(request: Request, db: AsyncSession = Depends(get_db)):
     check_admin(request)
+
     result = await db.execute(select(User))
     users = result.scalars().all()
+
     users_list = [
-        {"id": user.id, "username": user.username, "role": user.role.value}
+        {
+            "id": user.id,
+            "username": user.username,
+            "role": user.role.value,
+            "fullname": user.fullname or ""
+        }
         for user in users
     ]
+
     return JSONResponse(content=users_list)
 
 
-# Схема для обновления пользователя
-
-
-# Pydantic-схема запроса
-class UserUpdate(BaseModel):
-    username: str
-    role: str
-
-
-# Endpoint для обновления данных пользователя (используем JSON)
-@admin_router.put("/dashboard/users/{user_id}")
-async def update_user(
-    user_id: int, update: UserUpdate, db: AsyncSession = Depends(get_db)
-):
-    try:
-        result = await db.execute(select(User).where(User.id == user_id))
-        user = result.scalar_one_or_none()
-
-        if not user:
-            raise HTTPException(status_code=404, detail="Пользователь не найден")
-
-        user.username = update.username
-        user.role = update.role
-
-        await db.commit()
-        await db.refresh(user)
-
-        return {"id": user.id, "username": user.username, "role": user.role}
-
-    except Exception as e:
-        print("Ошибка обновления пользователя:", e)
-        raise HTTPException(
-            status_code=500, detail="Ошибка сервера при обновлении пользователя"
-        )
-
-
-# Endpoint для удаления пользователя
-@admin_router.delete("/dashboard/users/{user_id}", response_class=JSONResponse)
-async def delete_user(
-    user_id: int, request: Request, db: AsyncSession = Depends(get_db)
+@admin_router.put("/users/{user_id}")
+async def update_user_admin(
+    user_id: int,
+    update: AdminUserUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
 ):
     check_admin(request)
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    stmt = delete(User).where(User.id == user_id)
-    await db.execute(stmt)
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if update.username is not None:
+        user.username = update.username
+    if update.fullname is not None:
+        user.fullname = update.fullname
+    if update.role is not None:
+        user.role = update.role
+
     await db.commit()
-    return JSONResponse(content={"message": "User deleted"})
+    await db.refresh(user)
+
+    return {
+        "message": "Пользователь обновлён",
+        "id": user.id,
+        "username": user.username,
+        "fullname": user.fullname,
+        "role": user.role,
+    }
+
+
+@admin_router.delete("/users/{user_id}", response_class=JSONResponse)
+async def delete_user_admin(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    check_admin(request)
+
+    # Проверяем наличие пользователя
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    # Удаляем
+    await db.execute(delete(User).where(User.id == user_id))
+    await db.commit()
+
+    return JSONResponse(content={"message": f"Пользователь {user.username} удалён"})

@@ -20,8 +20,7 @@ class AuthorCreate(BaseModel):
 
 class GenreCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    
-        
+           
 class BookResponse(BaseModel):
     id: int
     title: str

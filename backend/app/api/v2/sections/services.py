@@ -34,6 +34,19 @@ class SectionService:
         await self.db.flush()
         return new_section
 
+    async def update_section(
+        self, exhibition_id: int, section_id: int, section_data: SectionCreate
+    ) -> Section:
+        # Validate existence
+        section = await self._get_validated_section(exhibition_id, section_id)
+        # Update fields
+        section.title = section_data.title
+        # Optionally, add other updatable fields here
+        self.db.add(section)
+        await self.db.flush()
+        return section
+    
+    
     async def delete_section(
         self, 
         exhibition_id: int, 

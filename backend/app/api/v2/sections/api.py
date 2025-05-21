@@ -33,7 +33,43 @@ async def get_exhibition_sections(
     except Exception as e:
         raise HTTPException(500, "Internal server error")
 
-# Создание нового раздела через slug выставки
+@router.put(
+    "/sections/{section_id}",
+    response_model=SectionResponse
+)
+async def update_section(
+    exhibition_slug: str,
+    section_id: int,
+    section_data: SectionCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    exhibition_service = ExhibitionService(db, MEDIA_DIR)
+    try:
+        exhibition = await exhibition_service.get_exhibition_by_slug(exhibition_slug)
+        if not exhibition:
+            raise HTTPException(404, "Выставка не найдена")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(500, "Ошибка получения выставки")
+
+    service = SectionService(db)
+    try:
+        updated = await service.update_section(
+            exhibition.id, section_id, section_data
+        )
+        await db.commit()
+        await db.refresh(updated)
+        return updated
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(500, str(e))
+
+
+
 @router.post("/sections/", response_model=SectionResponse)
 async def create_section(
     exhibition_slug: str,

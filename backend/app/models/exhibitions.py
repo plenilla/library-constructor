@@ -25,7 +25,11 @@ class Exhibition(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     published_at = Column(DateTime(timezone=True), nullable=True)
-    author_id = Column(Integer, ForeignKey('users.id'), nullable=True) 
+    author_id = Column(
+    Integer,
+    ForeignKey('users.id', ondelete="SET NULL"),  # ← сюда ondelete
+    nullable=True
+)
     author = relationship("User", back_populates="exhibitions")
     sections = relationship(
         "Section",

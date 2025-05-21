@@ -91,7 +91,6 @@ services:
       - photos_volume:/app/public/picture:ro
     environment:
       NEXT_PUBLIC_BASE_URL: https://exhibitdes.ru
-      # Proxy переменные для nginx-proxy
       VIRTUAL_HOST: exhibitdes.ru
       PORT: 80
     healthcheck:
