@@ -8,8 +8,6 @@ export default function Home() {
   
   return (
     <>
-      
-      <h2>Разделы</h2>
        <Sections/>
     </>
   );

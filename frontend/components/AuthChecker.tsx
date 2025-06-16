@@ -22,7 +22,7 @@ const AuthChecker = () => {
       localStorage.setItem("is_authenticated", 'false');  
       await request("users/logout","GET")
       checkAuth();
-    }, 1200000);
+    }, 12000000);
 
     // Очистка таймера при размонтировании компонента
     return () => clearInterval(timer);

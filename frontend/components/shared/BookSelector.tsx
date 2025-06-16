@@ -1,13 +1,7 @@
 'use client'
+import useMyAxios from '@/composables/useMyAxios'
 import { useEffect, useState } from 'react'
 import { BookInfo } from '@/interfaces/books'
-import axios from 'axios'
-
-const backendApi = axios.create({
-  baseURL: 'http://82.202.137.19/v2', // Базовый URL бэкенда
-  timeout: 10000,
-  headers: { 'Content-Type': 'application/json' },
-})
 
 interface BookSelectorProps {
   selectedBookId: number | null
@@ -15,59 +9,52 @@ interface BookSelectorProps {
 }
 
 export default function BookSelector({ selectedBookId, onSelect }: BookSelectorProps) {
+  const { request, loading, error, data } = useMyAxios<BookInfo[]>()
+
   const [searchTerm, setSearchTerm] = useState('')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [selectedAuthor, setSelectedAuthor] = useState<number | ''>('')
   const [selectedGenre, setSelectedGenre] = useState<number | ''>('')
   const [books, setBooks] = useState<BookInfo[]>([])
-  const [loading, setLoading] = useState(false)
   const [authors, setAuthors] = useState<{ id: number; name: string }[]>([])
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([])
 
-  // Загружаем авторов и жанры при монтировании
+  // Fetch authors and genres once
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const [authorsRes, genresRes] = await Promise.all([
-          backendApi.get('/library/authors/options'),
-          backendApi.get('/library/genres/options'),
-        ])
-        setAuthors(authorsRes.data)
-        setGenres(genresRes.data)
-      } catch (error) {
-        console.error('Error fetching options:', error)
+        const authRes = await request('/v2/library/authors/options', 'GET')
+        setAuthors(authRes.data)
+        const genRes = await request('/v2/library/genres/options', 'GET')
+        setGenres(genRes.data)
+      } catch (e) {
+        console.error('Error fetching options:', e)
       }
     }
     fetchOptions()
-  }, [])
+  }, [request])
 
+  // Fetch books when filters change
   useEffect(() => {
     const fetchBooks = async () => {
-      setLoading(true)
       try {
-        const params = {
-          search: searchTerm,
-          sort_order: sortOrder,
-          author_id: selectedAuthor || undefined,
-          genre_id: selectedGenre || undefined
-        }
-        
-        const response = await backendApi.get<BookInfo[]>('/library/books', { params })
-        setBooks(response.data)
-      } catch (error) {
-        console.error('Error fetching books:', error)
-      } finally {
-        setLoading(false)
+        const params = new URLSearchParams()
+        if (searchTerm) params.append('search', searchTerm)
+        params.append('sort_order', sortOrder)
+        if (selectedAuthor) params.append('author_id', String(selectedAuthor))
+        if (selectedGenre) params.append('genre_id', String(selectedGenre))
+
+        const res = await request(`/v2/library/books?${params.toString()}`, 'GET')
+        setBooks(res.data)
+      } catch (e) {
+        console.error('Error fetching books:', e)
       }
     }
 
-    const debounceTimer = setTimeout(fetchBooks, 500)
-    return () => clearTimeout(debounceTimer)
-  }, [searchTerm, sortOrder, selectedAuthor, selectedGenre])
+    const timer = setTimeout(fetchBooks, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm, sortOrder, selectedAuthor, selectedGenre, request])
 
-    const imageUrl = data.image?.startsWith("http")
-      ? data.image
-      : new URL(data.image!, process.env.NEXT_PUBLIC_URL).toString();
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -78,7 +65,7 @@ export default function BookSelector({ selectedBookId, onSelect }: BookSelectorP
           onChange={(e) => setSearchTerm(e.target.value)}
           className="p-2 border rounded"
         />
-        
+
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
@@ -119,37 +106,46 @@ export default function BookSelector({ selectedBookId, onSelect }: BookSelectorP
         <div className="text-center py-4">Загрузка...</div>
       ) : (
         <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
-          {books.map((book) => (
-            <div
-              key={book.id}
-              onClick={() => onSelect(book.id)}
-              className={`p-4 border rounded cursor-pointer ${
-                selectedBookId === book.id ? 'bg-blue-50 border-blue-500' : 'hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                {book.image_url && (
-                  <img
-                    src={imageUrl}
-                    alt={book.title}
-                    className="w-16 h-24 object-cover rounded"
-                    onError={(e) => { // Обработка ошибок загрузки изображений
-                      (e.target as HTMLImageElement).style.display = 'none'
-                    }}
-                  />
-                )}
-                <div>
-                  <h3 className="font-medium">{book.title}</h3>
-                  <p className="text-sm text-gray-500">
-                    {book.authors?.map(a => a.name).join(', ')}
-                  </p>
-                  <p className="text-sm text-gray-500">Год: {book.year_of_publication}</p>
+          {books.map((book) => {
+            const img = book.image_url ?? ''
+            const imageUrl = img.startsWith('http')
+              ? img
+              : new URL(img, process.env.NEXT_PUBLIC_BASE_URL).toString()
+
+            return (
+              <div
+                key={book.id}
+                onClick={() => onSelect(book.id)}
+                className={`p-4 border rounded cursor-pointer ${
+                  selectedBookId === book.id ? 'bg-blue-50 border-blue-500' : 'hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  {img && (
+                    <img
+                      src={imageUrl}
+                      alt={book.title}
+                      className="w-16 h-24 object-cover rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  )}
+                  <div>
+                    <h3 className="font-medium">{book.title}</h3>
+                    <p className="text-sm text-gray-500">
+                      {book.authors?.map((a) => a.name).join(', ')}
+                    </p>
+                    <p className="text-sm text-gray-500">Год: {book.year_of_publication}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
+
+      {error && <div className="text-red-600">Ошибка: {String(error)}</div>}
     </div>
   )
 }

@@ -19,7 +19,7 @@ export const Footer = () => {
 
 					{/* Навигация */}
 					<nav className='flex space-x-6 mb-6 md:mb-0'>
-						<Link href='/about' className='hover:text-white transition-colors'>
+						{/* <Link href='/about' className='hover:text-white transition-colors'>
 							О проекте
 						</Link>
 						<Link
@@ -27,7 +27,7 @@ export const Footer = () => {
 							className='hover:text-white transition-colors'
 						>
 							Контакты
-						</Link>
+						</Link> */}
 					</nav>
 				</div>
 			</div>

@@ -40,7 +40,7 @@ export const Header = () => {
 		}
 	}, [])
 
-	const logout = async e => {
+	const logout = async (e) => {
 		e.preventDefault()
 
 		try {
@@ -97,14 +97,14 @@ export const Header = () => {
 						Регистрация
 					</Link>
 					<Link
-						href='/exhibitions/dashboard'
+						href='/dashboard'
 						className={
 							isAuthenticated && role === 'admin' && !isExhibitionPage
 								? 'w-max text-sm px-3 py-1 md:px-4 md:py-2 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 rounded-md'
 								: 'hidden'
 						}
 					>
-						Админ панель
+						Администрирование
 					</Link>
 					<Link
 						href='/exhibitions/create'
@@ -115,6 +115,16 @@ export const Header = () => {
 						}
 					>
 						Создать выставку
+					</Link>
+					<Link
+						href='/books/edit'
+						className={
+							isAuthenticated && role === 'librarian' && !isExhibitionPage
+								? 'w-max text-sm px-3 py-1 md:px-4 md:py-2 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 rounded-md'
+								: 'hidden'
+						}
+					>
+						Создать книгу
 					</Link>
 					<Link
 						href='/auth/login'

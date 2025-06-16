@@ -87,9 +87,6 @@ export function LoginForm({
 								<div className='space-y-2'>
 									<div className='flex items-center'>
 										<Label htmlFor='password'>Пароль</Label>
-										<a href='#' className='ml-auto text-sm underline'>
-											Забыли пароль?
-										</a>
 									</div>
 									<Input
 										id='password'

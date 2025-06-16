@@ -227,7 +227,7 @@ export default function ExhibitionEditor() {
 				</div>
 			))}
 			<div className='fixed bottom-10 right-10'>
-				<Button className="" variant='primary' onClick={()=>{setEditingSection(null); setEditingBlock(null); setEditingSectionTitle(null); openModal()}}>
+				<Button className="text-white bg-black hover:bg-black/90" variant='primary' onClick={()=>{setEditingSection(null); setEditingBlock(null); setEditingSectionTitle(null); openModal()}}>
 					+ Новый раздел
 				</Button>
 			</div>
@@ -291,7 +291,7 @@ export default function ExhibitionEditor() {
 								<Button variant='secondary' onClick={closeModal}>
 									Отмена
 								</Button>
-								<Button type='submit' variant='primary'>
+								<Button type='submit' className='bg-black hover:bg-black/90 text-white' variant='primary'>
 									{editingBlock ? 'Сохранить' : 'Добавить'}
 								</Button>
 							</div>
@@ -319,7 +319,7 @@ function SectionForm({ initialData, onSubmit, onCancel }: { initialData?: Exhibi
 			<input type='text' className='w-full p-2 border rounded' placeholder='Название раздела' value={title} onChange={e=>setTitle(e.target.value)} required />
 			<div className='flex gap-2 justify-end'>
 				<Button variant='secondary' onClick={onCancel}>Отмена</Button>
-				<Button type='submit' variant='primary'>{initialData?'Сохранить':'Создать'}</Button>
+				<Button type='submit' className='bg-black hover:bg-black/90 text-white' variant='primary' >{initialData?'Сохранить':'Создать'}</Button>
 			</div>
 		</form>
 	)

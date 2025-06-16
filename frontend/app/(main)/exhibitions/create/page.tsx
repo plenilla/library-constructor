@@ -4,8 +4,9 @@ import { Exhibition } from '@/components/shared/Exhibition/exhibition'
 import { Modal } from '@/components/ui/modal'
 import useMyAxios from '@/composables/useMyAxios'
 import { ApiResponse, ExhibitionType } from '@/interfaces/exhibition'
+import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { MdAdd, MdArrowBack } from 'react-icons/md'
 
 export default function CreateExhibitionsPage() {
@@ -37,28 +38,40 @@ export default function CreateExhibitionsPage() {
 	const [title, setTitle] = useState('')
 	const [description, setDescription] = useState('')
 	const [isPublished, setIsPublished] = useState(false)
+	const [showEmpty, setShowEmpty] = useState(false)
 	const [imageFile, setImageFile] = useState<File | null>(null)
 	const [editingExhibition, setEditingExhibition] =
 		useState<ExhibitionType | null>(null)
 
-	useEffect(() => {
-		const fetchList = async () => {
-			try {
-				const resp = await listRequest(
-					`v2/exhibitionsPage/?page=${page}&size=${size}`,
-					'GET'
-				)
-				if (resp.data) {
-					setTotalPages(Math.max(1, resp.data.total_pages))
-					if (page > resp.data.total_pages) setPage(resp.data.total_pages)
-				}
-			} catch (e) {
-				console.error(e)
+	// Функция для безопасного запроса списка с гарантией page >= 1
+	const fetchList = useCallback(async () => {
+		try {
+			const safePage = Math.max(1, page)
+			if (safePage !== page) {
+				setPage(1)
 			}
-		}
-		fetchList()
-	}, [page, listRequest])
 
+			const resp = await listRequest(
+				`v2/exhibitionsPage/?page=${safePage}&size=${size}`,
+				'GET'
+			)
+			if (resp.data) {
+				setTotalPages(Math.max(1, resp.data.total_pages))
+				if (safePage > resp.data.total_pages) {
+					setPage(resp.data.total_pages)
+				}
+			}
+		} catch (e) {
+			console.error('Ошибка при загрузке списка:', e)
+		}
+	}, [page, size, listRequest])
+
+	// При изменении page — загружаем список
+	useEffect(() => {
+		fetchList()
+	}, [fetchList])
+
+	// При создании новой выставки сбрасываем форму и перезагружаем список
 	useEffect(() => {
 		const roleAdmin = localStorage.getItem('role')
 		if (roleAdmin === 'admin') {
@@ -72,9 +85,20 @@ export default function CreateExhibitionsPage() {
 			setIsPublished(false)
 			setImageFile(null)
 			setEditingExhibition(null)
-			listRequest(`v2/exhibitionsPage/?page=${page}&size=${size}`, 'GET')
+			fetchList()
 		}
-	}, [createdExhibition, page, listRequest])
+	}, [createdExhibition, fetchList])
+
+	useEffect(() => {
+		if (createLoading || (listData && listData.items.length > 0)) {
+			setShowEmpty(false)
+			return
+		}
+		const timer = setTimeout(() => {
+			setShowEmpty(true)
+		}, 5000)
+		return () => clearTimeout(timer)
+	}, [createLoading, listData])
 
 	const openModal = () => {
 		setModalOpen(true)
@@ -88,7 +112,9 @@ export default function CreateExhibitionsPage() {
 		form.append('title', title)
 		form.append('description', description)
 		form.append('is_published', String(isPublished))
-		if (imageFile) form.append('image', imageFile)
+		if (imageFile) {
+			form.append('image', imageFile)
+		}
 		try {
 			if (editingExhibition) {
 				await createRequest(
@@ -100,7 +126,7 @@ export default function CreateExhibitionsPage() {
 				await createRequest('v2/exhibitions/', 'POST', form)
 			}
 		} catch (e) {
-			console.error(e)
+			console.error('Ошибка при сохранении:', e)
 		}
 	}
 
@@ -116,10 +142,7 @@ export default function CreateExhibitionsPage() {
 		if (confirm('Вы уверены, что хотите удалить эту выставку?')) {
 			try {
 				await deleteRequest(`v2/exhibitions/${id}`, 'DELETE')
-				await listRequest(
-					`v2/exhibitionsPage/?page=${page}&size=${size}`,
-					'GET'
-				)
+				fetchList()
 			} catch (e) {
 				console.error('Ошибка при удалении:', e)
 			}
@@ -152,14 +175,14 @@ export default function CreateExhibitionsPage() {
 			<div className='flex justify-between items-center mb-6'>
 				<Link
 					href='/exhibitions'
-					className='flex items-center text-blue-600 hover:underline'
+					className='flex items-center text-black hover:underline'
 				>
 					<MdArrowBack size={24} />
 					<span className='ml-2'>Назад к списку</span>
 				</Link>
 				<button
 					onClick={openModal}
-					className='flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700'
+					className='flex items-center z-40 bg-black text-white px-4 py-2 rounded hover:bg-black/90'
 				>
 					<MdAdd size={20} className='mr-2' /> Создать выставку
 				</button>
@@ -202,7 +225,7 @@ export default function CreateExhibitionsPage() {
 							onChange={e => setIsPublished(e.target.checked)}
 							className='mr-2'
 						/>
-						<label htmlFor='published'>Опубликовать сразу</label>
+						<label htmlFor='published'>Опубликовать</label>
 					</div>
 
 					<div>
@@ -225,7 +248,7 @@ export default function CreateExhibitionsPage() {
 						<button
 							type='submit'
 							disabled={createLoading}
-							className='px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-50'
+							className='px-4 py-2 rounded bg-black hover:bg-black/90 text-white disabled:opacity-50'
 						>
 							{createLoading ? 'Сохранение...' : 'Сохранить'}
 						</button>
@@ -237,34 +260,85 @@ export default function CreateExhibitionsPage() {
 				</form>
 			</Modal>
 
-			{listLoading && <p>Загрузка...</p>}
-			{listError && <p className='text-red-500'>Ошибка при загрузке списка</p>}
+			{listError && (
+				<div className='fixed inset-0 flex items-center justify-center bg-white'>
+					<div className='px-4 py-2 bg-red-100 text-red-700 rounded'>
+						Ошибка при загрузке выставок
+					</div>
+				</div>
+			)}
+
+			{(() => {
+				if (listData && listData.items.length > 0) {
+					return <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'></div>
+				}
+				if (showEmpty) {
+					return (
+						<div className='absolute inset-0 flex items-center justify-center'>
+							<div className='px-4 py-2 bg-blue-100 text-black rounded'>
+								Нет выставок для отображения
+							</div>
+						</div>
+					)
+				}
+				return (
+					<div className='absolute inset-0 flex items-center justify-center'>
+						<div className='w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin' />
+					</div>
+				)
+			})()}
 
 			{listData && (
 				<ul className='space-y-4'>
 					{listData.items.map(exh => (
-						<li key={exh.id} className='border rounded p-4 relative'>
+						<li
+							key={exh.id}
+							className='relative border rounded p-4 pl-12' 
+						>
+							<Image
+								src={
+									exh.is_published
+										? '/icons/publish.svg'
+										: '/icons/unpublished.svg'
+								}
+								alt={exh.is_published ? 'Published' : 'Unpublished'}
+								className='absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6'
+								width={50}
+								height={50}
+							/>
+
 							<Link href={`/exhibitions/${exh.slug}`} className='block mb-2'>
 								<Exhibition exhibition={exh} />
 							</Link>
-							<div className='flex space-x-2 absolute top-2 right-2'>
-								<button
-									onClick={() => handleEditClick(exh)}
-									className='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600'
-								>
-									Изменить
+							<div
+								className='flex space-x-1 absolute bottom-10 right-5 md:bottom-26 md:right-10'
+							>
+								<button onClick={() => handleEditClick(exh)} className=''>
+									<Image
+										src={'/icons/rewrite.svg'}
+										width={35}
+										height={35}
+										className='hover:bg-black/25'
+										alt={'Изменить выставку'}
+									></Image>
 								</button>
-								<Link
-									href={`/exhibitions/${exh.slug}/edit`}
-									className='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600'
-								>
-									Редактор
+								<Link href={`/exhibitions/${exh.slug}/edit`} className=''>
+									<Image
+										src={'/icons/redactor.svg'}
+										width={35}
+										height={35}
+										className='hover:bg-black/25'
+										alt={'Радектор'}
+									></Image>
 								</Link>
-								<button
-									onClick={() => handleDelete(exh.id)}
-									className='px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700'
-								>
-									Удалить
+								<button onClick={() => handleDelete(exh.id)} className=''>
+									<Image
+										src={'/icons/delete.svg'}
+										width={35}
+										height={35}
+										className='hover:bg-black/25'
+										alt={'Удалить'}
+									></Image>
 								</button>
 							</div>
 						</li>

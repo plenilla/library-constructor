@@ -4,72 +4,71 @@ import { Books } from '@/components/shared/Books/books'
 import useMyAxios from '@/composables/useMyAxios'
 import { Author, Book, Genre } from '@/interfaces/books'
 import React, { useEffect, useState } from 'react'
-import ImageWithRefresh from '@/components/ImageWithRefresh'
-
 
 const BookPage: React.FC = () => {
-  const { request, loading, error } = useMyAxios()
+	const { request, loading, error } = useMyAxios()
 
-  const [selectedAuthor, setSelectedAuthor] = useState<Author | null>(null)
-  const [selectedGenre, setSelectedGenre] = useState<Genre | null>(null)
-  const [selectedSort, setSelectedSort] = useState<string>('')
+	const [selectedAuthor, setSelectedAuthor] = useState<Author | null>(null)
+	const [selectedGenre, setSelectedGenre] = useState<Genre | null>(null)
+	const [selectedSort, setSelectedSort] = useState<string>('')
 
-  const [books, setBooks] = useState<Book[]>([])
-  const [authors, setAuthors] = useState<Author[]>([])
-  const [genres, setGenres] = useState<Genre[]>([])
+	const [books, setBooks] = useState<Book[]>([])
+	const [authors, setAuthors] = useState<Author[]>([])
+	const [genres, setGenres] = useState<Genre[]>([])
 
-  // Добавляем базовый URL для API
-  const API_BASE = '/v2/'
+	// Добавляем базовый URL для API
+	const API_BASE = '/v2/'
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [booksRes, authorsRes, genresRes] = await Promise.all([
-          request(`${API_BASE}library/books/`, 'GET'), // 
-          request(`${API_BASE}library/authors/`, 'GET'),
-          request(`${API_BASE}library/genres/`, 'GET'),
-        ])
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				const [booksRes, authorsRes, genresRes] = await Promise.all([
+					request(`${API_BASE}library/books/`, 'GET'), //
+					request(`${API_BASE}library/authors/`, 'GET'),
+					request(`${API_BASE}library/genres/`, 'GET'),
+				])
 
-        setBooks(booksRes.data)
-        setAuthors(authorsRes.data)
-        setGenres(genresRes.data)
-      } catch (err) {
-        console.error('Ошибка загрузки данных', err)
-      }
-    }
-    fetchData()
-  }, [request])
+				setBooks(booksRes.data)
+				setAuthors(authorsRes.data)
+				setGenres(genresRes.data)
+			} catch (err) {
+				console.error('Ошибка загрузки данных', err)
+			}
+		}
+		fetchData()
+	}, [request])
 
-  useEffect(() => {
-    const fetchFilteredBooks = async () => {
-      try {
-        const params = new URLSearchParams()
-        
-        if (selectedAuthor) params.append('author_id', String(selectedAuthor.id))
-        if (selectedGenre) params.append('genre_id', String(selectedGenre.id))
-        if (selectedSort) params.append('sort_order', selectedSort)
+	useEffect(() => {
+		const fetchFilteredBooks = async () => {
+			try {
+				const params = new URLSearchParams()
 
-        // Используем URLSearchParams для правильного формирования URL
-        const response = await request(
-          `${API_BASE}library/books/?${params.toString()}`,
-          'GET'
-        )
-        
-        setBooks(response.data)
-      } catch (err) {
-        console.error('Ошибка фильтрации', err)
-      }
-    }
+				if (selectedAuthor)
+					params.append('author_id', String(selectedAuthor.id))
+				if (selectedGenre) params.append('genre_id', String(selectedGenre.id))
+				if (selectedSort) params.append('sort_order', selectedSort)
 
-    fetchFilteredBooks()
-  }, [selectedAuthor, selectedGenre, selectedSort, request])
+				// Используем URLSearchParams для правильного формирования URL
+				const response = await request(
+					`${API_BASE}library/books/?${params.toString()}`,
+					'GET'
+				)
 
-  return (
+				setBooks(response.data)
+			} catch (err) {
+				console.error('Ошибка фильтрации', err)
+			}
+		}
+
+		fetchFilteredBooks()
+	}, [selectedAuthor, selectedGenre, selectedSort, request])
+
+	return (
 		<>
 			{loading && <div>Загрузка...</div>}
 			{error && <div>Ошибка при загрузке данных</div>}
 
-			<div className='filters'>
+			<div className='flex space-x-8 p-5'>
 				<div className='filter-item'>
 					<label>Автор:</label>
 					<Autocomplete<Author>
@@ -90,15 +89,16 @@ const BookPage: React.FC = () => {
 					/>
 				</div>
 
-				<div className='filter-item'>
-					<label>Сортировка:</label>
+				<div className='flex flex-col justify-center'>
+					<label className='text-sm mb-1'>Сортировка:</label>
 					<select
 						value={selectedSort}
 						onChange={e => setSelectedSort(e.target.value)}
+						className='border rounded px-2 py-1'
 					>
 						<option value=''>Без сортировки</option>
-						<option value='asc'>По возрастанию (А-Я)</option>
-						<option value='desc'>По убыванию (Я-А)</option>
+						<option value='asc'>По возрастанию (А–Я)</option>
+						<option value='desc'>По убыванию (Я–А)</option>
 					</select>
 				</div>
 			</div>

@@ -1,11 +1,13 @@
 export interface Book {
     id: number;
     title: string;
-    genre: string;
+    genres: string;
     image_url: string;
-    author: string;
+    authors: string;
     library_description: string;
     annotations: string;
+    year_of_publication: string
+
 }
 export interface Author {
   id: number;
