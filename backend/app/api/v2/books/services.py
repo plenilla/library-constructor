@@ -16,23 +16,6 @@ class BooksFondsService:
         self.media_dir = media_dir
         self.max_file_size = max_file_size
 
-
-    async def get_filtered_books(
-        self,
-        search: Optional[str] = None,
-        author_id: Optional[List[int]] = None,
-        genre_id: Optional[List[int]] = None,
-        sort_order: Optional[str] = None
-    ) -> List[Book]:
-        query = select(Book).options(
-            selectinload(Book.authors),
-            selectinload(Book.genres)
-        )
-
-        if search:
-            query = query.filter(Book.title.ilike(f"%{search}%"))
-    
-    
     async def get_book(self, book_id: int) -> Optional[Book]:
         # Загружаем книгу с опциями selectinload для authors и genres
         stmt = (
@@ -50,7 +33,8 @@ class BooksFondsService:
         self,
         author_id: Optional[List[int]],
         genre_id: Optional[List[int]],
-        sort_order: Optional[str]
+        sort_order: Optional[str],
+        search: Optional[str],
     ) -> List[Book]:
         query = select(Book).options(
             selectinload(Book.authors),
@@ -63,8 +47,13 @@ class BooksFondsService:
         if genre_id:
             query = query.filter(Book.genres.any(Genre.id.in_(genre_id)))
         
+        if search:
+            pattern = f"%{search}%"
+            query = query.where(Book.title.ilike(pattern))
+        
         if sort_order == "asc":
             query = query.order_by(Book.title.asc())
+            
         elif sort_order == "desc":
             query = query.order_by(Book.title.desc())
 
@@ -254,3 +243,71 @@ class BooksContentService:
         if not book:
             raise HTTPException(404, "Book not found")
         return book
+    
+    
+class AuthorsService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def get_all_authors(self) -> List[Author]:
+        result = await self.db.execute(select(Author))
+        return result.scalars().all()
+
+    async def create_author(self, author_data: AuthorCreate) -> Author:
+        existing = await self.db.execute(select(Author).where(Author.name == author_data.name))
+        if existing.scalar_one_or_none():
+            raise HTTPException(400, detail="Author already exists")
+        new_author = Author(name=author_data.name)
+        self.db.add(new_author)
+        await self.db.flush()
+        return new_author
+
+    async def delete_author(self, author_id: int) -> None:
+        author = await self.db.execute(select(Author).where(Author.id == author_id))
+        if not author.scalar_one_or_none():
+            raise HTTPException(404, detail="Author not found")
+        await self.db.delete(author.scalar_one())
+        await self.db.commit()
+
+    async def update_author(self, author_id: int, author_data: AuthorCreate) -> Author:
+        author = await self.db.execute(select(Author).where(Author.id == author_id))
+        if not author.scalar_one_or_none():
+            raise HTTPException(404, detail="Author not found")
+        author = author.scalar_one()
+        author.name = author_data.name
+        await self.db.commit()
+        return author
+
+
+class GenresService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def get_all_genres(self) -> List[Genre]:
+        result = await self.db.execute(select(Genre))
+        return result.scalars().all()
+
+    async def create_genre(self, genre_data: GenreCreate) -> Genre:
+        existing = await self.db.execute(select(Genre).where(Genre.name == genre_data.name))
+        if existing.scalar_one_or_none():
+            raise HTTPException(400, detail="Genre already exists")
+        new_genre = Genre(name=genre_data.name)
+        self.db.add(new_genre)
+        await self.db.flush()
+        return new_genre
+
+    async def delete_genre(self, genre_id: int) -> None:
+        genre = await self.db.execute(select(Genre).where(Genre.id == genre_id))
+        if not genre.scalar_one_or_none():
+            raise HTTPException(404, detail="Genre not found")
+        await self.db.delete(genre.scalar_one())
+        await self.db.commit()
+
+    async def update_genre(self, genre_id: int, genre_data: GenreCreate) -> Genre:
+        genre = await self.db.execute(select(Genre).where(Genre.id == genre_id))
+        if not genre.scalar_one_or_none():
+            raise HTTPException(404, detail="Genre not found")
+        genre = genre.scalar_one()
+        genre.name = genre_data.name
+        await self.db.commit()
+        return genre

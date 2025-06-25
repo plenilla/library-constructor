@@ -26,7 +26,7 @@ class ExhibitionResponse(BaseModel):
     def set_author(cls, author_obj):
         if author_obj and author_obj.fullname:
             return author_obj.fullname
-        return "Аноним"
+        return "Пользователь не ввел свое полное имя"
 
 
 T = TypeVar("T")
@@ -95,4 +95,4 @@ class ExhibitionOut(BaseModel):
     def set_author(cls, author_obj):
         if author_obj and author_obj.fullname:
             return author_obj.fullname
-        return "Аноним"
+        return "Пользователь не ввел свое полное имя"

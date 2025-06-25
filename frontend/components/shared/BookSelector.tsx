@@ -23,9 +23,9 @@ export default function BookSelector({ selectedBookId, onSelect }: BookSelectorP
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const authRes = await request('/v2/library/authors/options', 'GET')
+        const authRes = await request('/v2/library/authors/options/', 'GET')
         setAuthors(authRes.data)
-        const genRes = await request('/v2/library/genres/options', 'GET')
+        const genRes = await request('/v2/library/genres/options/', 'GET')
         setGenres(genRes.data)
       } catch (e) {
         console.error('Error fetching options:', e)

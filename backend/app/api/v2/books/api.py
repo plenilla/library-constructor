@@ -35,10 +35,11 @@ async def get_all_books(
     author_id: Optional[List[int]] = Query(None),
     genre_id: Optional[List[int]] = Query(None),
     sort_order: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     service = BooksFondsService(db, MEDIA_DIR, MAX_FILE_SIZE)
-    return await service.get_filtered_books(author_id, genre_id, sort_order)
+    return await service.get_filtered_books(author_id, genre_id, sort_order, search)
 
 
 import logging
@@ -249,6 +250,64 @@ async def get_genres(db: AsyncSession = Depends(get_db)):
     service = BooksFondsService(db, MEDIA_DIR, MAX_FILE_SIZE)
     return await service.get_genres()
 
+
+@router_library.put("/authors/{author_id}", response_model=AuthorResponse)
+async def update_author(
+    author_id: int,
+    author_data: AuthorCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    author = await db.get(Author, author_id)
+    if not author:
+        raise HTTPException(404, "Author not found")
+    
+    author.name = author_data.name
+    await db.commit()
+    await db.refresh(author)
+    return author
+
+@router_library.put("/genres/{genre_id}", response_model=GenreResponse)
+async def update_genre(
+    genre_id: int,
+    genre_data: GenreCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    genre = await db.get(Genre, genre_id)
+    if not genre:
+        raise HTTPException(404, "Genre not found")
+    
+    genre.name = genre_data.name
+    await db.commit()
+    await db.refresh(genre)
+    return genre
+
+
+@router_library.delete("/genres/{genre_id}")
+async def delete_genre(
+    genre_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    genre = await db.get(Genre, genre_id)
+    if not genre:
+        raise HTTPException(404, "Genre not found")
+    
+    await db.delete(genre)
+    await db.commit()
+    return {"status": "success", "message": "Genres deleted"}
+
+
+@router_library.delete("/authors/{author_id}")
+async def delete_author(
+    author_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    author = await db.get(Author, author_id)
+    if not author:
+        raise HTTPException(404, "Author not found")
+    
+    await db.delete(author)
+    await db.commit()
+    return {"status": "success", "message": "Author deleted"}
 
 # Книги для контент
 from ....models import Book

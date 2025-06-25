@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  # 1) Прокси‑сервер nginx, который подхватит ваш wildcard-сертификат
+  # 1) Прокси‑сервер nginx, который подхватывает wildcard-сертификат
   nginx-proxy:
     image: jwilder/nginx-proxy:latest
     container_name: nginx-proxy

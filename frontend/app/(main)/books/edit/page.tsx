@@ -7,7 +7,7 @@ import { Author, Book, Genre } from '@/interfaces/books'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
-
+import CreateBookModal from '@/components/CreateBookModal'
 const BookPage: React.FC = () => {
 	const { request, loading, error } = useMyAxios()
 	const [books, setBooks] = useState<Book[]>([])
@@ -16,6 +16,7 @@ const BookPage: React.FC = () => {
 	const [selectedAuthor, setSelectedAuthor] = useState<Author | null>(null)
 	const [selectedGenre, setSelectedGenre] = useState<Genre | null>(null)
 	const [selectedSort, setSelectedSort] = useState<string>('')
+	const [isModalOpen, setIsModalOpen] = useState(false)
 
 	const [editingBook, setEditingBook] = useState<Book | null>(null)
 	const [editTitle, setEditTitle] = useState('')
@@ -39,6 +40,11 @@ const BookPage: React.FC = () => {
 	const API_BASE = '/v2/'
 
 	const router = useRouter()
+	
+
+	const handleBookCreated = () => {
+			router.push(`/books/edit/`)
+		}	
 
 	const handleCreateGenre = async () => {
 		if (!newGenreName.trim()) return
@@ -57,6 +63,13 @@ const BookPage: React.FC = () => {
 			setCreatingGenreLoading(false)
 		}
 	}
+
+	useEffect(() => {
+		document.body.style.overflowY = isModalOpen ? 'hidden' : 'auto'
+		return () => {
+			document.body.style.overflowY = 'auto'
+		}
+	}, [isModalOpen])
 
 	const handleCreateAuthor = async () => {
 		if (!newAuthorName.trim()) return
@@ -170,78 +183,98 @@ const BookPage: React.FC = () => {
 		<>
 			{loading && <div>Загрузка...</div>}
 			{error && <div>Ошибка при загрузке данных</div>}
-			<div className='p-5'>
-				<button
-					onClick={() => router.push('/books/create')}
-					className='bg-black text-white px-4 py-2 rounded hover:bg-black/90 *:transition'
-				>
-					Создать книгу
-				</button>
-			</div>
-			<div className='flex space-x-8 p-5'>
-				<div className='filter-item'>
-					<label>Автор:</label>
-					<Autocomplete<Author>
-						endpoint='v2/library/authors/search/'
-						placeholder='Введите имя автора...'
-						labelField='name'
-						onSelect={author => setSelectedAuthor(author)}
-					/>
-				</div>
-
-				<div className='filter-item'>
-					<label>Жанр:</label>
-					<Autocomplete<Genre>
-						endpoint='v2/library/genres/search/'
-						placeholder='Введите название жанра...'
-						labelField='name'
-						onSelect={genre => setSelectedGenre(genre)}
-					/>
-				</div>
-
-				<div className='flex flex-col justify-center'>
-					<label className='text-sm mb-1'>Сортировка:</label>
-					<select
-						value={selectedSort}
-						onChange={e => setSelectedSort(e.target.value)}
-						className='border rounded px-2 py-1'
-					>
-						<option value=''>Без сортировки</option>
-						<option value='asc'>По возрастанию (А–Я)</option>
-						<option value='desc'>По убыванию (Я–А)</option>
-					</select>
-				</div>
-			</div>
-
-			<div className='book-list'>
-				{books.map(book => (
-					<div key={book.id} className='relative'>
-						<Books book={book} />
-						<div className='flex absolute right-5 top-5 md:top-15'>
-							<button className='edit-button' onClick={() => handleEdit(book)}>
-								<Image
-									src={'/icons/rewrite.svg'}
-									width={35}
-									height={35}
-									className='hover:bg-black/25'
-									alt={'Изменить'}
-								/>
-							</button>
-							<button
-								className='delete-button'
-								onClick={() => handleDelete(book.id)}
+			<div className='max-w-7xl px-5 mx-auto'>
+				<div>
+					<div className='flex'>
+						<div className='p-5'>
+						<button
+							onClick={() => setIsModalOpen(true)}
+							className='bg-black text-white px-4 py-2 rounded hover:bg-black/90 transition'
 							>
-								<Image
-									src={'/icons/delete.svg'}
-									width={35}
-									height={35}
-									className='hover:bg-black/25'
-									alt={'Удалить'}
-								/>
+							Создать книгу
+							</button>
+						</div>
+						<div className='p-5'>
+							<button
+							onClick={() => router.push("/ja")}
+							className='bg-black text-white px-4 py-2 rounded hover:bg-black/90 transition'
+							>
+							Таблица авторов и форм
 							</button>
 						</div>
 					</div>
-				))}
+
+					<CreateBookModal
+						isOpen={isModalOpen}
+						onClose={() => setIsModalOpen(false)}
+						onBookCreated={handleBookCreated}
+					/>
+				</div>
+				<div className='flex flex-col mx-auto'>
+					<div className='filter-item'>
+						<label>Автор:</label>
+						<Autocomplete<Author>
+							endpoint='v2/library/authors/search/'
+							placeholder='Введите имя автора...'
+							labelField='name'
+							onSelect={author => setSelectedAuthor(author)}
+						/>
+					</div>
+
+					<div className='filter-item'>
+						<label>Форма произведения:</label>
+						<Autocomplete<Genre>
+							endpoint='v2/library/genres/search/'
+							placeholder='Введите название формы...'
+							labelField='name'
+							onSelect={genre => setSelectedGenre(genre)}
+						/>
+					</div>
+
+					<div className='flex flex-col justify-center'>
+						<label className='text-sm mb-1'>Сортировка:</label>
+						<select
+							value={selectedSort}
+							onChange={e => setSelectedSort(e.target.value)}
+							className='border rounded px-2 py-1'
+						>
+							<option value=''>Без сортировки</option>
+							<option value='asc'>По возрастанию (А–Я)</option>
+							<option value='desc'>По убыванию (Я–А)</option>
+						</select>
+					</div>
+				</div>
+
+				<div className='mt-5'>
+					{books.map(book => (
+						<div key={book.id} className='relative'>
+							<Books book={book} />
+							<div className='relative'>
+								<button className='edit-button' onClick={() => handleEdit(book)}>
+									<Image
+										src={'/icons/rewrite.svg'}
+										width={35}
+										height={35}
+										className='hover:bg-black/25'
+										alt={'Изменить'}
+									/>
+								</button>
+								<button
+									className='delete-button'
+									onClick={() => handleDelete(book.id)}
+								>
+									<Image
+										src={'/icons/delete.svg'}
+										width={35}
+										height={35}
+										className='hover:bg-black/25'
+										alt={'Удалить'}
+									/>
+								</button>
+							</div>
+						</div>
+					))}
+				</div>
 			</div>
 
 			{/* Модальное окно редактирования */}
@@ -249,25 +282,10 @@ const BookPage: React.FC = () => {
 				isOpen={!!editingBook}
 				onClose={() => setEditingBook(null)}
 				title='Редактировать книгу'
-				size='lg'
-				actions={
-					<div className='flex justify-end gap-2'>
-						<button
-							onClick={() => setEditingBook(null)}
-							className='px-4 py-2 rounded border'
-						>
-							Отмена
-						</button>
-						<button
-							onClick={handleUpdate}
-							className='px-4 py-2 rounded bg-black hover:bg-black/90 text-white'
-						>
-							Сохранить
-						</button>
-					</div>
-				}
+				size="xl"
+      			disableOutsideClick={loading}
 			>
-				<div className='space-y-4 p-4'>
+				<div className='space-y-4 p-4 max-h-[80vh] overflow-y-auto'>
 					<div>
 						<label className='block text-sm'>Название</label>
 						<input
@@ -399,10 +417,10 @@ const BookPage: React.FC = () => {
 					</div>
 
 					<div>
-						<label className='block text-sm'>Жанры</label>
+						<label className='block text-sm'>Форма произведения</label>
 						<Autocomplete<Genre>
 							endpoint='v2/library/genres/search/'
-							placeholder='Добавьте жанр'
+							placeholder='Добавьте форму'
 							labelField='name'
 							onSelect={genre => {
 								if (!editGenres.find(g => g.id === genre.id)) {
@@ -417,7 +435,7 @@ const BookPage: React.FC = () => {
 								className='mt-1 text-blue-600 underline text-sm'
 								onClick={() => setIsAddingGenre(true)}
 							>
-								Добавить новый жанр
+								Добавить новую форму произведения
 							</button>
 						)}
 
@@ -427,7 +445,7 @@ const BookPage: React.FC = () => {
 									type='text'
 									value={newGenreName}
 									onChange={e => setNewGenreName(e.target.value)}
-									placeholder='Название жанра'
+									placeholder='Название формы произведения'
 									className='border rounded px-2 py-1'
 									disabled={creatingGenreLoading}
 								/>
@@ -474,6 +492,20 @@ const BookPage: React.FC = () => {
 								</div>
 							))}
 						</div>
+					</div>
+					<div className='flex justify-end gap-2'>
+						<button
+							onClick={() => setEditingBook(null)}
+							className='px-4 py-2 rounded border'
+						>
+							Отмена
+						</button>
+						<button
+							onClick={handleUpdate}
+							className='px-4 py-2 rounded bg-black hover:bg-black/90 text-white'
+						>
+							Сохранить
+						</button>
 					</div>
 				</div>
 			</Modal>

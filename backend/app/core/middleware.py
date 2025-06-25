@@ -15,6 +15,7 @@ origins = [
     "http://localhost:3000",
     "http://26.0.197.27:3000",
     "https://exhibitdes.ru",
+    "https://192.168.0.101:3000"
 ]
 
 def setup_middleware(app):
@@ -32,7 +33,15 @@ def setup_middleware(app):
         session_cookie="session", 
         https_only=True,       
         same_site="none",        
-        )
+    )
+    # app.add_middleware(
+    #     SessionMiddleware, 
+    #     secret_key=settings.SECRET_KEY,
+    #     session_cookie="session", 
+    #     https_only=True,       
+    #     same_site="none",        
+    #     )
+    
     
     
     # Подключаем роутеры

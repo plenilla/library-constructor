@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { api } from '@/composables/api'
 import { BookInfo } from '@/interfaces/books'
+import { useRouter } from 'next/navigation'
 import {
 	ContentBlock,
 	ExhibitionSection,
@@ -18,6 +19,7 @@ import { useEffect, useState } from 'react'
 console.log('API baseURL is:', api.defaults.baseURL)
 
 export default function ExhibitionEditor() {
+	const Router = useRouter()
 	// Получение параметра slug из URL
 	const { slug } = useParams() as { slug?: string }
 
@@ -227,8 +229,13 @@ export default function ExhibitionEditor() {
 				</div>
 			))}
 			<div className='fixed bottom-10 right-10'>
-				<Button className="text-white bg-black hover:bg-black/90" variant='primary' onClick={()=>{setEditingSection(null); setEditingBlock(null); setEditingSectionTitle(null); openModal()}}>
+				<Button className="text-white bg-black hover:bg-black/90 m-5" variant='primary' onClick={()=>{setEditingSection(null); setEditingBlock(null); setEditingSectionTitle(null); openModal()}}>
 					+ Новый раздел
+				</Button>
+				<Button className="text-white bg-black hover:bg-black/90" variant='primary' onClick={() => {
+					Router.push(`/exhibitions/${slug}`);
+				}}>
+					Предпросмотр
 				</Button>
 			</div>
 
@@ -247,7 +254,7 @@ export default function ExhibitionEditor() {
 				}
 				size='full'
 			>
-				<div className='p-6'>
+				<div className='p-6 overflow-y-auto h-[80vh]'>
 					{editingSection || editingBlock ? (
 						<form
 							className='space-y-4'

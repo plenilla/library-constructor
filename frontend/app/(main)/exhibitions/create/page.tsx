@@ -313,7 +313,7 @@ export default function CreateExhibitionsPage() {
 							<div
 								className='flex space-x-1 absolute bottom-10 right-5 md:bottom-26 md:right-10'
 							>
-								<button onClick={() => handleEditClick(exh)} className=''>
+								<button onClick={() => handleEditClick(exh)} className='' title='Изменить данные выставки'>
 									<Image
 										src={'/icons/rewrite.svg'}
 										width={35}
@@ -322,7 +322,7 @@ export default function CreateExhibitionsPage() {
 										alt={'Изменить выставку'}
 									></Image>
 								</button>
-								<Link href={`/exhibitions/${exh.slug}/edit`} className=''>
+								<Link href={`/exhibitions/${exh.slug}/edit`} className='' title='Конструктор ЭКВ'>
 									<Image
 										src={'/icons/redactor.svg'}
 										width={35}
@@ -331,7 +331,7 @@ export default function CreateExhibitionsPage() {
 										alt={'Радектор'}
 									></Image>
 								</Link>
-								<button onClick={() => handleDelete(exh.id)} className=''>
+								<button onClick={() => handleDelete(exh.id)} className='' title='Удалить'>
 									<Image
 										src={'/icons/delete.svg'}
 										width={35}

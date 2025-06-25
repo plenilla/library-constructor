@@ -41,34 +41,49 @@ export const Books = ({ book }: BookProps) => {
 	return (
 		<>
 			<Card
-				className='rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group overflow-hidden flex flex-row items-center justify-between p-2'
+				className='rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group overflow-hidden flex flex-row p-3 h-40 md:h-60'
 				onClick={() => setIsModalOpen(true)}
 			>
-				<div className='flex items-center gap-3'>
-					<div className='relative w-[70px] md:w-[150px]'>
-						<Image
-							src={imageUrl}
-							alt={book.title}
-							width={150}
-							height={200}
-							className='object-contain w-full h-[70px] md:h-[150px] shadow-accent-foreground'
-						/>
-					</div>
-					<CardContent className='flex flex-col items-start h-23 md:h-40'>
-						<h1 className='text-md md:text-2xl truncate mb-2'>{book.title}</h1>
-						<p className='text-sm whitespace-pre-line'>
-							{truncateWords(book.annotations, 25)}
-						</p>
-						<div className='mt-auto flex flex-col'>
-							<p className='text-xs text-muted-foreground truncate'>
-								Жанры: {book.genres.map(genre => genre.name).join(', ')}
-							</p>
-							<p className='text-xs text-muted-foreground truncate'>
-								Авторы: {book.authors.map(author => author.name).join(', ')}
+				{/* Блок с изображением */}
+				<div className="relative flex-shrink-0 w-[80px] h-[120px] md:w-[130px] md:h-[220px]">
+					<Image
+					src={imageUrl}
+					fill
+					alt={book.title}
+					sizes="(max-width: 768px) 100vw, 50vw"
+					className="transition-transform duration-300"
+					/>
+				</div>
+
+				{/* Контент - занимает оставшееся пространство */}
+				<CardContent className='flex-1 flex flex-col min-h-0 pl-3 md:pl-4 py-0'>
+					{/* Заголовок с фиксированной высотой */}
+					<h1 className='text-lg md:text-xl font-bold truncate mb-1'>{book.title}</h1>
+					
+					{/* Описание с адаптивным размером и скроллом */}
+					<div className="flex-1 min-h-0 w-50 md:w-auto">
+						<div className="md:hidden">
+							<p className='text-xs whitespace-pre-line'>
+							{truncateWords(book.annotations, 10)}
 							</p>
 						</div>
-					</CardContent>
-				</div>
+						<div className="hidden md:block">
+							<p className='text-sm whitespace-pre-line'>
+							{truncateWords(book.annotations, 50)}
+							</p>
+						</div>
+					</div>
+					
+					{/* Мета-информация - прижимается к низу */}
+					<div className='mt-2 space-y-1 w-50 md:w-aut'>
+						<p className='text-xs text-muted-foreground truncate'>
+							Форма произведения: {book.genres.map(genre => genre.name).join(', ')}
+						</p>
+						<p className='text-xs text-muted-foreground truncate'>
+							Авторы: {book.authors.map(author => author.name).join(', ')}
+						</p>
+					</div>
+				</CardContent>
 			</Card>
 
 			<Modal
@@ -78,10 +93,11 @@ export const Books = ({ book }: BookProps) => {
 					setIsModalOpen(false)
 					setIsFullscreen(false)
 				}}
+				showCloseButton={true}
 				className={
 					isFullscreen
 						? 'fixed z-50 bg-transparent border-none shadow-none'
-						: 'overflow-y-auto w-full h-full m-0 p-0'
+						: 'overflow-y-auto w-full h-full m-0 p-0 md:justify-center'
 				}
 			>
 				{isFullscreen ? (
@@ -100,7 +116,7 @@ export const Books = ({ book }: BookProps) => {
 					</div>
 				) : (
 					<div className='flex flex-col w-full md:flex-row gap-6'>
-						<div className='relative md:w-1/3 cursor-zoom-in min-h-[200px]'>
+						<div className='relative md:w-1/4 cursor-zoom-in min-h-[150px]'>
 							<div className='absolute inset-0 overflow-hidden'>
 								<Image
 									src={imageUrl}
@@ -141,32 +157,30 @@ export const Books = ({ book }: BookProps) => {
 							</button>
 							<p className='text-center mt-4'>Год публикации книги: {book.year_of_publication}г.</p>
 						</div>
-						<div className='w-full md:w-2/3 space-y-4'>
-							<div className='overflow-y-auto rounded-lg p-3'>
-								<h1 className='font-bold text-center'>О книге</h1>
-								<h2 className='font-bold text-center text-2xl'>
-									{book.title}
-								</h2>
-								<h3 className='font-bold text-center'>
-									Аннотация
-								</h3>
-								<p className='text-md whitespace-pre-line'>
-									{book.annotations}
-								</p>
-								<p className='text-md text-center '>
-									Библиографическое описание книги
-								</p>
-								<p className='text-sm whitespace-pre-line break-words'>
-									{book.library_description}
-								</p>
-								<p>Авторы: 
-								{book.authors.map(author => author.name).join(', ')}</p>
-								<p>Жанры: {book.genres.map(genres => genres.name).join(', ')}</p>
+						<div className="flex flex-col md:flex-row md:justify-center w-full">
+							<div className='w-full md:w-1/2 bg-gray-100 p-4 rounded-lg'>
+								<div className='overflow-y-auto rounded-lg p-3 flex flex-col h-[500px]'>
+									<div>
+										<h2 className='font-bold text-center text-2xl mt-6'>
+										{book.title}
+										</h2>
+										<h3 className='font-bold text-center'>Аннотация</h3>
+										<p className="text-md whitespace-pre-line mt-2">
+											{book.annotations}
+										</p>
+										<p className='font-bold text-md text-center'>
+										Библиографическое описание книги
+										</p>
+										<p className='text-sm whitespace-pre-line break-words'>
+										{book.library_description}
+										</p>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
 				)}
-			</Modal>
+				</Modal>
 		</>
 	)
 }
